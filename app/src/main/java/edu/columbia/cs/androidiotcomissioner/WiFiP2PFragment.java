@@ -24,9 +24,9 @@ public class WiFiP2PFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        inflater.inflate(R.layout.fragment_wifip2p, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_wifip2p, container, false);
 
-        return super.onCreateView(inflater, container, savedInstanceState);
+        return rootView;
     }
 
     @Override

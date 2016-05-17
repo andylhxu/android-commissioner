@@ -24,9 +24,9 @@ public class ZeroConfFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
-        inflater.inflate(R.layout.fragment_zeroconf, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_zeroconf, container, false);
 
-        return super.onCreateView(inflater, container, savedInstanceState);
+        return rootView;
     }
 
     @Override
