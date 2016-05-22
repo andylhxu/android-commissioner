@@ -1,5 +1,9 @@
 package edu.columbia.cs.androidiotcomissioner;
 
+import android.content.Context;
+import android.content.IntentFilter;
+import android.net.nsd.NsdManager;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.support.design.widget.TabLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -12,6 +16,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import java.lang.reflect.Method;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -32,6 +39,14 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
+
+    // WiFiP2P related variables
+    private final IntentFilter intentFilter = new IntentFilter();
+    private WifiP2pManager mManager;
+    private WifiP2pManager.Channel mChannel;
+    private NsdManager mNsdManager;
+    protected static final int[] CHANNEL_LIST = { 1, 3, 6, 11};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,6 +65,45 @@ public class MainActivity extends AppCompatActivity {
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(mViewPager);
 
+
+
+        // WiFiP2P related setup
+        //  Indicates a change in the Wi-Fi P2P status.
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
+        // Indicates a change in the list of available peers.
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
+        // Indicates the state of Wi-Fi P2P connectivity has changed.
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        // Indicates this device's details have changed.
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+
+        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        mChannel = mManager.initialize(this,getMainLooper(),null);
+
+
+        mNsdManager = (NsdManager) getSystemService(Context.NSD_SERVICE);
+        if (mNsdManager == null){
+            Log.e(TAG,"Failed to obtain the NsdManager");
+        }
+        final int channelNum = CHANNEL_LIST[new Random().nextInt(CHANNEL_LIST.length)];
+        try {
+            Method setWifiP2pChannels = mManager.getClass().getMethod("setWifiP2pChannels", WifiP2pManager.Channel.class, int.class, int.class, WifiP2pManager.ActionListener.class);
+            setWifiP2pChannels.invoke(mManager, mChannel, 0, channelNum, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+
+                    Log.d(TAG, "Changed channel (" + channelNum + ") succeeded");
+                }
+
+                @Override
+                public void onFailure(int reason) {
+                    Log.d(TAG, "Changed channel (" + channelNum + ")  failed");
+                }
+            });
+        } catch (Exception ex)
+        {
+            Log.e(TAG,ex.toString());
+        }
 
     }
 
@@ -117,4 +171,9 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
     }
+
+
+
+    // additional callbacks
+
 }
