@@ -66,7 +66,7 @@ public class ZeroConfFragment extends Fragment {
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()) {
             @Override
             public boolean canScrollVertically() {
-                return false;
+                return true;
             }
         });
         mServiceAdaptor = new ZeroConfServiceAdaptor(callingActivity.getZeroConfServices());
@@ -84,45 +84,43 @@ public class ZeroConfFragment extends Fragment {
 
     public class ZeroConfServiceAdaptor extends RecyclerView.Adapter<ZeroConfServiceHolder> {
 
-        private HashMap<String,NsdServiceInfo> mZeroConfServices;
-        private List<String> keyList;
+        private List<NsdServiceInfo>  mZeroConfServices;
 
-        public ZeroConfServiceAdaptor (HashMap<String, NsdServiceInfo> services)
+        public ZeroConfServiceAdaptor (List<NsdServiceInfo> services)
         {
             mZeroConfServices = services;
-            keyList = new ArrayList<>(mZeroConfServices.keySet());
-            Log.d(TAG, keyList.toString());
+            Log.d(TAG, "Run ZeroAdaptor constructor");
         }
 
         @Override
         public ZeroConfServiceHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             LayoutInflater inflater = LayoutInflater.from(getActivity());
-            View v = inflater.inflate(R.layout.list_item_device, parent, false);
+            View v = inflater.inflate(R.layout.list_item_service, parent, false);
             return new ZeroConfServiceHolder(v);
         }
 
         @Override
         public void onBindViewHolder(ZeroConfServiceHolder holder, int position) {
-            NsdServiceInfo thisService = mZeroConfServices.get(keyList.get(position));
+            NsdServiceInfo thisService = mZeroConfServices.get(position);
             holder.bindService(thisService);
         }
 
         @Override
         public int getItemCount() {
-            return keyList.size();
+            return mZeroConfServices.size();
         }
 
     }
 
     public class ZeroConfServiceHolder extends RecyclerView.ViewHolder{
-        TextView mDeviceNameTextView;
-        TextView mDeviceAddressTextView;
+        TextView mServiceNameTextView;
+        TextView mServiceAddressTextView;
         NsdServiceInfo mNsdServiceInfo;
 
         public ZeroConfServiceHolder(View itemView) {
             super(itemView);
-            mDeviceNameTextView = (TextView) itemView.findViewById(R.id.list_item_service_name);
-            mDeviceAddressTextView = (TextView) itemView.findViewById(R.id.list_item_service_address);
+            mServiceNameTextView = (TextView) itemView.findViewById(R.id.list_item_service_name);
+            mServiceAddressTextView = (TextView) itemView.findViewById(R.id.list_item_service_address);
             /* TODO
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -136,8 +134,9 @@ public class ZeroConfFragment extends Fragment {
 
         public void bindService(NsdServiceInfo service){
             mNsdServiceInfo = service;
-            mDeviceNameTextView.setText(service.getServiceName());
-            mDeviceAddressTextView.setText(service.getHost().toString()+":"+service.getPort());
+            mServiceNameTextView.setText(service.getServiceName());
+            if(service.getHost() != null)
+                mServiceAddressTextView.setText(service.getHost().toString()+":"+service.getPort());
         }
 
     }

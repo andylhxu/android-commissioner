@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Server and Zeroconf related stuff
     private ClientHandler runningHandler;
-    private HashMap<String,NsdServiceInfo> mServiceList;
+    private List<NsdServiceInfo> mServiceList;
 
 
 
@@ -126,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
         if (mNsdManager == null){
             Log.e(TAG,"Failed to obtain the NsdManager");
         }
-        mServiceList = new HashMap<>();
+        mServiceList = new ArrayList<>();
 
         final int channelNum = CHANNEL_LIST[new Random().nextInt(CHANNEL_LIST.length)];
         try {
@@ -330,7 +330,7 @@ public class MainActivity extends AppCompatActivity {
         startServer();
 
         // discover the services
-        mNsdManager.discoverServices("_adisk._tcp", NsdManager.PROTOCOL_DNS_SD, new NsdManager.DiscoveryListener() {
+        mNsdManager.discoverServices("_http._tcp", NsdManager.PROTOCOL_DNS_SD, new NsdManager.DiscoveryListener() {
             @Override
             public void onStartDiscoveryFailed(String serviceType, int errorCode) {
                 Log.e(TAG, "start discovery failed");
@@ -354,8 +354,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onServiceFound(NsdServiceInfo serviceInfo) {
                 Log.d(TAG, "Service found:"+serviceInfo.getServiceName());
-                mServiceList.put(serviceInfo.getServiceName(),serviceInfo);
-                // mSectionsPagerAdapter.hostingZeroConfFragment.updateView();
+                boolean ifAdd = true;
+                for(NsdServiceInfo info: mServiceList){
+                    if(info.getServiceName().equals(serviceInfo.getServiceName())) {
+                        ifAdd = false;
+                        break;
+                    }
+                }
+                if(ifAdd)
+                    mServiceList.add(serviceInfo);
+
             }
 
             @Override
@@ -551,7 +559,7 @@ public class MainActivity extends AppCompatActivity {
         return mWifiP2pDevices;
     }
 
-    public HashMap<String, NsdServiceInfo> getZeroConfServices(){
+    public List<NsdServiceInfo> getZeroConfServices(){
         return mServiceList;
     }
 
