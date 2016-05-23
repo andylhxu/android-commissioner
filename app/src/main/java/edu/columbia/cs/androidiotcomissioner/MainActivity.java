@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.net.nsd.NsdManager;
+import android.net.nsd.NsdServiceInfo;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -39,6 +40,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -82,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Server and Zeroconf related stuff
     private ClientHandler runningHandler;
+    private HashMap<String,NsdServiceInfo> mServiceList;
 
 
 
@@ -123,6 +126,8 @@ public class MainActivity extends AppCompatActivity {
         if (mNsdManager == null){
             Log.e(TAG,"Failed to obtain the NsdManager");
         }
+        mServiceList = new HashMap<>();
+
         final int channelNum = CHANNEL_LIST[new Random().nextInt(CHANNEL_LIST.length)];
         try {
             Method setWifiP2pChannels = mManager.getClass().getMethod("setWifiP2pChannels", WifiP2pManager.Channel.class, int.class, int.class, WifiP2pManager.ActionListener.class);
@@ -162,7 +167,10 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_refresh) {
+            mSectionsPagerAdapter.hostingWiFiP2PFragment.getDeviceAdaptor().notifyDataSetChanged();
+            mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
+            Log.d(TAG,"Refresh called");
             return true;
         }
 
@@ -320,6 +328,43 @@ public class MainActivity extends AppCompatActivity {
     public void setServerOn(){
         // start the server
         startServer();
+
+        // discover the services
+        mNsdManager.discoverServices("_adisk._tcp", NsdManager.PROTOCOL_DNS_SD, new NsdManager.DiscoveryListener() {
+            @Override
+            public void onStartDiscoveryFailed(String serviceType, int errorCode) {
+                Log.e(TAG, "start discovery failed");
+            }
+
+            @Override
+            public void onStopDiscoveryFailed(String serviceType, int errorCode) {
+                Log.e(TAG, "stop discovery failed");
+            }
+
+            @Override
+            public void onDiscoveryStarted(String serviceType) {
+
+            }
+
+            @Override
+            public void onDiscoveryStopped(String serviceType) {
+
+            }
+
+            @Override
+            public void onServiceFound(NsdServiceInfo serviceInfo) {
+                Log.d(TAG, "Service found:"+serviceInfo.getServiceName());
+                mServiceList.put(serviceInfo.getServiceName(),serviceInfo);
+                // mSectionsPagerAdapter.hostingZeroConfFragment.updateView();
+            }
+
+            @Override
+            public void onServiceLost(NsdServiceInfo serviceInfo) {
+
+            }
+        });
+
+
     }
     public void setServerOff(){
         if (runningHandler != null) {
@@ -504,6 +549,10 @@ public class MainActivity extends AppCompatActivity {
     public List<WifiP2pDevice> getWifiP2pDevices()
     {
         return mWifiP2pDevices;
+    }
+
+    public HashMap<String, NsdServiceInfo> getZeroConfServices(){
+        return mServiceList;
     }
 
 

@@ -26,5 +26,9 @@
             android:id="@+id/fragment_zeroconf_switch"
             android:paddingLeft="200dp"/>
     </LinearLayout>
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/fragment_zeroconf_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 
 </LinearLayout>
