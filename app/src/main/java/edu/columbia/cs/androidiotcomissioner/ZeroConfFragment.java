@@ -1,5 +1,6 @@
 package edu.columbia.cs.androidiotcomissioner;
 
+import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Bundle;
@@ -7,6 +8,7 @@ import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SwitchCompat;
@@ -15,7 +17,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -107,7 +113,6 @@ public class ZeroConfFragment extends Fragment {
         public ZeroConfServiceAdaptor (List<NsdServiceInfo> services)
         {
             mZeroConfServices = services;
-            Log.d(TAG, "Run ZeroAdaptor constructor");
         }
 
         @Override
@@ -148,15 +153,56 @@ public class ZeroConfFragment extends Fragment {
                 }
             });
             */
+            itemView.setLongClickable(true);
+            itemView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    callingActivity.mNsdManager.resolveService(mNsdServiceInfo, new NsdManager.ResolveListener() {
+                        @Override
+                        public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                            Toast.makeText(getActivity(),"Failed to resolve",Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onServiceResolved(NsdServiceInfo serviceInfo) {
+                            String result = serviceInfo.getHost().toString().substring(1)+":"+serviceInfo.getPort();
+                            Log.d(TAG,"Resolved:"+result);
+                            Toast.makeText(getActivity(),result,Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    return true;
+                }
+            });
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    callingActivity.mNsdManager.resolveService(mNsdServiceInfo, new NsdManager.ResolveListener() {
+                        @Override
+                        public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                            Toast.makeText(getActivity(),"Failed to resolve",Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onServiceResolved(NsdServiceInfo serviceInfo) {
+                            String result = serviceInfo.getHost().toString().substring(1)+":"+serviceInfo.getPort();
+                            Log.d(TAG,"Resolved:"+result);
+                            DialogFragment connectDialog = new ConnectDialogFragment();
+                            connectDialog.show(getFragmentManager(),result);
+                        }
+                    });
+                }
+            });
         }
 
         public void bindService(NsdServiceInfo service){
             mNsdServiceInfo = service;
             mServiceNameTextView.setText(service.getServiceName());
-            mServiceAddressTextView.setText(service.getHost().toString().substring(1)+":"+service.getPort());
+            if(service.getHost() != null)
+                mServiceAddressTextView.setText(service.getHost().toString().substring(1)+":"+service.getPort());
         }
 
     }
+
     // additional functions
 
     public void setTextView(String content){

@@ -33,6 +33,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.security.KeyStore;
@@ -69,13 +72,14 @@ public class MainActivity extends AppCompatActivity {
     private ViewPager mViewPager;
 
     private static final String TAG = "MainActivity";
+    int port_final;
 
 
     // WiFiP2P related variables
     private final IntentFilter intentFilter = new IntentFilter();
     private WifiP2pManager mManager;
     private WifiP2pManager.Channel mChannel;
-    private NsdManager mNsdManager;
+    public NsdManager mNsdManager;
     protected static final int[] CHANNEL_LIST = { 1, 3, 6, 11};
     private List<WifiP2pDevice> mWifiP2pDevices;
     private WiFiBroadcastReceiver mBroadcastReceiver;
@@ -84,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Server and Zeroconf related stuff
     private ClientHandler runningHandler;
-    private List<NsdServiceInfo> mServiceList;
+    public List<NsdServiceInfo> mServiceList;
     private NsdManager.DiscoveryListener mServiceDiscoveryListener;
 
 
@@ -362,26 +366,18 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 if(ifAdd) {
-                    // resolve before adding
-                    mNsdManager.resolveService(serviceInfo, new NsdManager.ResolveListener() {
-                        @Override
-                        public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
-                            Log.e(TAG, "Failed to resolve "+serviceInfo.getServiceName());
-
-                        }
-
-                        @Override
-                        public void onServiceResolved(NsdServiceInfo resolvedServiceInfo) {
-                            mServiceList.add(resolvedServiceInfo);
-                        }
-                    });
-
+                    mServiceList.add(serviceInfo);
                 }
             }
 
             @Override
             public void onServiceLost(NsdServiceInfo serviceInfo) {
-
+                for(NsdServiceInfo info:mServiceList){
+                    if(serviceInfo.getServiceName().equals(info.getServiceName())) {
+                        mServiceList.remove(info);
+                        break;
+                    }
+                }
             }
         };
         // discover the services
@@ -445,12 +441,11 @@ public class MainActivity extends AppCompatActivity {
             SSLServerSocketFactory sslServerSocketFactory = sslContext.getServerSocketFactory();
 
             Random random = new Random(Calendar.getInstance().getTimeInMillis());
-            int port = 8000 + random.nextInt(1000);
-            mSectionsPagerAdapter.hostingZeroConfFragment.setTextView("On: "+port);
+            port_final = 8000 + random.nextInt(1000);
+            mSectionsPagerAdapter.hostingZeroConfFragment.setTextView("On: "+port_final);
 
-            SSLServerSocket currentServerSocket = (SSLServerSocket) sslServerSocketFactory.createServerSocket(port);
+            SSLServerSocket currentServerSocket = (SSLServerSocket) sslServerSocketFactory.createServerSocket(port_final);
 
-            Toast.makeText(this,"Running on port:"+ port,Toast.LENGTH_SHORT).show();
 
 
             StringBuilder usefulInfo = new StringBuilder();
@@ -565,6 +560,39 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+    }
+
+    public class AuthorizeExecutor implements Runnable{
+        String address;
+        int port;
+        public AuthorizeExecutor(String addr, int p) {
+            address = addr;
+            port = p;
+        }
+
+        @Override
+        public void run() {
+            try {
+                Log.d(TAG, "Entering Client Initiator runnable" );
+                DatagramSocket socket = new DatagramSocket();
+                InetAddress addr = InetAddress.getByName(address);
+                String msg = "HelloReq:tcp:192.168.49.1:"+port_final;
+                DatagramPacket packet = new DatagramPacket(msg.getBytes(),msg.length(), addr, port);
+
+                socket.send(packet);
+                Log.d(TAG, "sent --- "+ msg + " to "+address+":"+port);
+
+            }
+            catch(Exception ex){
+                Log.e(TAG, ex.toString());
+            }
+        }
+    }
+
+    public void authorize(String address, int port){
+        Log.d(TAG, "called here");
+        AuthorizeExecutor exec = new AuthorizeExecutor(address,port);
+        new Thread(exec).start();
     }
 
     public void updateDeviceList(List<WifiP2pDevice> list){

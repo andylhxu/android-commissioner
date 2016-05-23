@@ -28,7 +28,7 @@
             android:id="@+id/list_item_service_address"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Address"/>
+            android:text="Long-click to resolve the address"/>
     </LinearLayout>
 
 </LinearLayout>

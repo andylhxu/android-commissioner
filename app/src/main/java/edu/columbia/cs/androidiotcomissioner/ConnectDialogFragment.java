@@ -9,6 +9,10 @@ import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+
 /**
  * Created by FreedomSworder on 5/22/16.
  */
@@ -20,25 +24,52 @@ public class ConnectDialogFragment extends DialogFragment {
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        final String address = this.getTag();
         hostingActicity = (MainActivity) getActivity();
-        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder
-                .setMessage("Connect to this device?")
-                .setPositiveButton("Connect", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Log.d(TAG, "Connecting the new device");
-                        hostingActicity.connectToP2PDevice(address);
-                    }
-                })
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Log.d(TAG, "Canceling the connection");
-                    }
-                });
+        if(this.getTag().contains(".")){
+            int separator = this.getTag().indexOf(":");
+            final String addr = this.getTag().substring(0,separator);
+            final int port = (new Integer(this.getTag().substring(separator+1))).intValue();
+            // authorize device
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage("Authorize this device with "+addr+":"+port)
+                    .setPositiveButton("Grant", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // perform authorization
+                            hostingActicity.authorize( addr, port );
+                        }
+                    })
+                    .setNegativeButton("Deny", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // do nothing
+                        }
+                    });
+            return builder.create();
 
-        return builder.create();
+        }
+        else {
+            final String address = this.getTag();
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder
+                    .setMessage("Connect to this device?")
+                    .setPositiveButton("Connect", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Log.d(TAG, "Connecting the new device");
+                            hostingActicity.connectToP2PDevice(address);
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Log.d(TAG, "Cancelling the connection");
+                        }
+                    });
+
+            return builder.create();
+        }
     }
+
+
 }
