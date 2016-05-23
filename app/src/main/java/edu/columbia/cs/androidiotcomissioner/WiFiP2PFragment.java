@@ -70,6 +70,7 @@ public class WiFiP2PFragment extends Fragment {
         mRecyclerView.setLayoutManager(mLayoutManager);
         mDeviceAdaptor= new WiFiDeviceAdaptor(hostingAcitivity.getWifiP2pDevices());
         mRecyclerView.setAdapter(mDeviceAdaptor);
+        mRecyclerView.addItemDecoration(new SimpleDividerItemDecoration(getActivity()));
 
         return rootView;
     }
