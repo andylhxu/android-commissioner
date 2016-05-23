@@ -172,9 +172,13 @@ public class MainActivity extends AppCompatActivity {
             // Return a PlaceholderFragment (defined as a static inner class below).
             switch (position){
                 case 0:
-                    return hostingWiFiP2PFragment == null ?  WiFiP2PFragment.newInstance() : hostingWiFiP2PFragment;
+                    if(hostingWiFiP2PFragment == null)
+                        hostingWiFiP2PFragment = WiFiP2PFragment.newInstance();
+                    return hostingWiFiP2PFragment;
                 case 1:
-                    return hostingZeroConfFragment == null ? ZeroConfFragment.newInstance() : hostingZeroConfFragment;
+                    if(hostingZeroConfFragment == null)
+                        hostingZeroConfFragment = ZeroConfFragment.newInstance();
+                    return hostingZeroConfFragment;
             }
             Log.e(TAG, "getItem() error");
             return null;
@@ -246,6 +250,10 @@ public class MainActivity extends AppCompatActivity {
     public void updateDeviceList(List<WifiP2pDevice> list){
         mWifiP2pDevices.clear();
         mWifiP2pDevices.addAll(list);
+        Log.d(TAG, "Update List gets called: "+mWifiP2pDevices.size()+"added");
+        WiFiP2PFragment.WiFiDeviceAdaptor adaptor = mSectionsPagerAdapter.hostingWiFiP2PFragment.getDeviceAdaptor();
+        if(adaptor != null)
+            adaptor.notifyDataSetChanged();
     }
 
     public List<WifiP2pDevice> getWifiP2pDevices()

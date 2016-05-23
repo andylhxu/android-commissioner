@@ -23,7 +23,7 @@ public class WiFiP2PFragment extends Fragment {
 
     // for the Lists
     private RecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
+    private WiFiDeviceAdaptor mDeviceAdaptor;
     private SwitchCompat mSwitchCompat;
 
     public static WiFiP2PFragment newInstance(){
@@ -61,9 +61,15 @@ public class WiFiP2PFragment extends Fragment {
         // handle the recycle view
         mRecyclerView = (RecyclerView) rootView.findViewById(R.id.wifip2p_recycler_view);
         mRecyclerView.setHasFixedSize(true);
-        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getActivity());
+        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getActivity()){
+            @Override
+            public boolean canScrollVertically() {
+                return false;
+            }
+        };
         mRecyclerView.setLayoutManager(mLayoutManager);
-        mRecyclerView.setAdapter(new WiFiDeviceAdaptor(hostingAcitivity.getWifiP2pDevices()));
+        mDeviceAdaptor= new WiFiDeviceAdaptor(hostingAcitivity.getWifiP2pDevices());
+        mRecyclerView.setAdapter(mDeviceAdaptor);
 
         return rootView;
     }
@@ -126,6 +132,10 @@ public class WiFiP2PFragment extends Fragment {
 
     public void toggleSwitch(boolean flag){
         mSwitchCompat.setChecked(flag);
+    }
+
+    public WiFiDeviceAdaptor getDeviceAdaptor(){
+        return mDeviceAdaptor;
     }
 
 

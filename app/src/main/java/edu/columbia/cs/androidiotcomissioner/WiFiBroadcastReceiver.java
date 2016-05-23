@@ -65,8 +65,10 @@ public class WiFiBroadcastReceiver extends BroadcastReceiver{
         } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
             // Connection state changed!  We should probably do something about
             // that.
+            Log.d(TAG, "Connection state changed");
         } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
             // do something about the device configuration change.
+            Log.d(TAG, "Configuration changed");
         }
     }
 
