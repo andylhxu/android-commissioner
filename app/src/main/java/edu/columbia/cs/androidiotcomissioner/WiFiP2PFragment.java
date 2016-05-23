@@ -19,6 +19,8 @@ public class WiFiP2PFragment extends Fragment {
 
     public static final String TAG = "WiFiP2PFragment";
 
+    MainActivity hostingAcitivity;
+
     // for the Lists
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
@@ -31,6 +33,7 @@ public class WiFiP2PFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        hostingAcitivity = (MainActivity) getActivity();
     }
 
     @Nullable
@@ -38,11 +41,7 @@ public class WiFiP2PFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_wifip2p, container, false);
 
-        mRecyclerView = (RecyclerView) rootView.findViewById(R.id.wifip2p_recycler_view);
-        mRecyclerView.setHasFixedSize(true);
-        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getActivity());
-        mRecyclerView.setLayoutManager(mLayoutManager);
-
+        // handle the toggle button
         mSwitchCompat = (SwitchCompat) rootView.findViewById(R.id.fragment_wifip2p_switch);
         mSwitchCompat.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -50,12 +49,21 @@ public class WiFiP2PFragment extends Fragment {
                 if(mSwitchCompat.isChecked())
                 {
                     Log.d(TAG, "Toggle On");
+                    hostingAcitivity.setDiscoveryOn();
                 }
                 else{
                     Log.d(TAG, "Toggle Off");
+                    hostingAcitivity.setDiscoveryOff();
                 }
             }
         });
+
+        // handle the recycle view
+        mRecyclerView = (RecyclerView) rootView.findViewById(R.id.wifip2p_recycler_view);
+        mRecyclerView.setHasFixedSize(true);
+        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getActivity());
+        mRecyclerView.setLayoutManager(mLayoutManager);
+        mRecyclerView.setAdapter(new WiFiDeviceAdaptor(hostingAcitivity.getWifiP2pDevices()));
 
         return rootView;
     }
@@ -93,10 +101,6 @@ public class WiFiP2PFragment extends Fragment {
             return mAdaptorDevices.size();
         }
 
-        public void updateDeviceList(List<WifiP2pDevice> devices)
-        {
-            mAdaptorDevices = devices;
-        }
     }
 
     public class WiFiDeviceHolder extends RecyclerView.ViewHolder{
@@ -117,4 +121,12 @@ public class WiFiP2PFragment extends Fragment {
         }
 
     }
+
+    // additional methods
+
+    public void toggleSwitch(boolean flag){
+        mSwitchCompat.setChecked(flag);
+    }
+
+
 }

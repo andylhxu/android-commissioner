@@ -1,11 +1,14 @@
 package edu.columbia.cs.androidiotcomissioner;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.nsd.NsdManager;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.support.design.widget.TabLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.SwitchCompat;
 import android.support.v7.widget.Toolbar;
 
 import android.support.v4.app.Fragment;
@@ -18,6 +21,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
@@ -46,6 +51,8 @@ public class MainActivity extends AppCompatActivity {
     private WifiP2pManager.Channel mChannel;
     private NsdManager mNsdManager;
     protected static final int[] CHANNEL_LIST = { 1, 3, 6, 11};
+    private List<WifiP2pDevice> mWifiP2pDevices;
+    private WiFiBroadcastReceiver mBroadcastReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
         {
             Log.e(TAG,ex.toString());
         }
+        mWifiP2pDevices = new ArrayList<>();
 
     }
 
@@ -130,6 +138,18 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mBroadcastReceiver = new WiFiBroadcastReceiver(mManager,mChannel,this);
+        registerReceiver(mBroadcastReceiver,intentFilter);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(mBroadcastReceiver);
+    }
 
     /**
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
@@ -137,8 +157,13 @@ public class MainActivity extends AppCompatActivity {
      */
     public class SectionsPagerAdapter extends FragmentPagerAdapter {
 
+        private WiFiP2PFragment hostingWiFiP2PFragment;
+        private ZeroConfFragment hostingZeroConfFragment;
+
         public SectionsPagerAdapter(FragmentManager fm) {
             super(fm);
+            hostingWiFiP2PFragment = null;
+            hostingZeroConfFragment = null;
         }
 
         @Override
@@ -147,9 +172,9 @@ public class MainActivity extends AppCompatActivity {
             // Return a PlaceholderFragment (defined as a static inner class below).
             switch (position){
                 case 0:
-                    return WiFiP2PFragment.newInstance();
+                    return hostingWiFiP2PFragment == null ?  WiFiP2PFragment.newInstance() : hostingWiFiP2PFragment;
                 case 1:
-                    return ZeroConfFragment.newInstance();
+                    return hostingZeroConfFragment == null ? ZeroConfFragment.newInstance() : hostingZeroConfFragment;
             }
             Log.e(TAG, "getItem() error");
             return null;
@@ -170,10 +195,70 @@ public class MainActivity extends AppCompatActivity {
             }
             return null;
         }
+
+        @Override
+        public long getItemId(int position) {
+            return super.getItemId(position);
+        }
     }
 
 
 
     // additional callbacks
 
+    public void setDiscoveryOn()
+    {
+        mManager.discoverPeers(mChannel,new WifiP2pManager.ActionListener(){
+            @Override
+            public void onSuccess() {
+                Log.d(TAG,"WiFiBroadcastReceiver handled peer discovery request");
+            }
+            @Override
+            public void onFailure(int reason) {
+                Log.e(TAG,"Failed to initiate the peer discovery process.");
+                if(reason == WifiP2pManager.P2P_UNSUPPORTED)
+                    Log.e(TAG,"Unsupported P2P");
+                else if(reason == WifiP2pManager.BUSY)
+                    Log.e(TAG,"Busy");
+                else
+                    Log.e(TAG,"Internal Error");
+            }
+        });
+    }
+
+    public void setDiscoveryOff()
+    {
+        mManager.stopPeerDiscovery(mChannel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "Successfully stopped peer discovery");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                Log.e(TAG, "Failed to stop peer discovery");
+            }
+        });
+        mWifiP2pDevices.clear();
+
+    }
+
+    public void updateDeviceList(List<WifiP2pDevice> list){
+        mWifiP2pDevices.clear();
+        mWifiP2pDevices.addAll(list);
+    }
+
+    public List<WifiP2pDevice> getWifiP2pDevices()
+    {
+        return mWifiP2pDevices;
+    }
+
+
+    // additional methods
+    public void setIsWifiP2pEnabled(boolean flag)
+    {
+        WiFiP2PFragment f = mSectionsPagerAdapter.hostingWiFiP2PFragment;
+        if(f != null)
+            f.toggleSwitch(flag);
+    }
 }
