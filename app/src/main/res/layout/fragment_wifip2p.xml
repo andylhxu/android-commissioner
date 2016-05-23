@@ -15,11 +15,12 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:id="@+id/fragment_wifip2p_text"
             android:textColor="#FFFFFF"
             android:textSize="20sp"
             android:paddingStart="70dp"
             android:paddingLeft="70dp"
-            android:text="On"
+            android:text="Off"
             android:textStyle="bold"/>
         <android.support.v7.widget.SwitchCompat
             android:layout_width="wrap_content"

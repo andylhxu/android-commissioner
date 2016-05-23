@@ -3,11 +3,13 @@ package edu.columbia.cs.androidiotcomissioner;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.net.nsd.NsdManager;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.os.AsyncTask;
 import android.support.design.widget.TabLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SwitchCompat;
@@ -23,10 +25,29 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -57,6 +78,10 @@ public class MainActivity extends AppCompatActivity {
     private List<WifiP2pDevice> mWifiP2pDevices;
     private WiFiBroadcastReceiver mBroadcastReceiver;
     protected static final int OWNER_INTENT_HIGH = 15;
+
+
+    // Server and Zeroconf related stuff
+    private ClientHandler runningHandler;
 
 
 
@@ -253,6 +278,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure(int reason) {
                 Log.e(TAG,"Failed to initiate the peer discovery process.");
+                Toast.makeText(MainActivity.this, "Failed to initiate peer discovery", Toast.LENGTH_SHORT).show();
                 if(reason == WifiP2pManager.P2P_UNSUPPORTED)
                     Log.e(TAG,"Unsupported P2P");
                 else if(reason == WifiP2pManager.BUSY)
@@ -261,9 +287,6 @@ public class MainActivity extends AppCompatActivity {
                     Log.e(TAG,"Internal Error");
             }
         });
-
-
-
     }
 
     public void setDiscoveryOff()
@@ -292,7 +315,180 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         updateDeviceList(new ArrayList<WifiP2pDevice>());
+    }
 
+    public void setServerOn(){
+        // start the server
+        startServer();
+    }
+    public void setServerOff(){
+        if (runningHandler != null) {
+            runningHandler.cancel(true);
+            Toast.makeText(this, "Stopping the auth server", Toast.LENGTH_SHORT).show();
+            mSectionsPagerAdapter.hostingZeroConfFragment.setTextView("Off");
+        }
+    }
+
+    private void startServer(){
+        try {
+            // obtain key information
+            Resources resources = getResources();
+            InputStream caInput = resources.openRawResource(R.raw.cacert);
+            InputStream keyStoreInput = resources.openRawResource(R.raw.keystore);
+
+
+            SSLContext sslContext; // the sslContext of our keystore
+            KeyManagerFactory keyManagerFactory; // the Factory that creates a KeyManager
+            KeyStore keyStore; // used to store our certificate-private key pair
+
+            char[] storePass = "123456".toCharArray();
+            char[] keyPass = "123456".toCharArray();
+
+            sslContext = SSLContext.getInstance("TLS");
+
+            Log.d(TAG,"Default algorithm:"+KeyManagerFactory.getDefaultAlgorithm()+" Default type:"+KeyStore.getDefaultType());
+            keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm()); //Sun format of the certificate
+            keyStore = KeyStore.getInstance(KeyStore.getDefaultType()); // BKS store type
+            keyStore.load(keyStoreInput,storePass);
+            keyManagerFactory.init(keyStore,keyPass);
+
+
+            // Import the organizational CA
+            Log.d(TAG,"creating the factory");
+            CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509"); // standard X.509 type cert
+            Certificate certificate = certificateFactory.generateCertificate(caInput); // must be DER or PKCS #7
+            Log.d(TAG,"adding cert to keystore");
+            KeyStore keyStoreCA = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStoreCA.load(null, null); // empty keystore
+            Log.d(TAG,"setting the certificate entry");
+            keyStoreCA.setCertificateEntry("IRTca",certificate);
+
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(keyStoreCA); // trust the CA keystore
+
+            sslContext.init(keyManagerFactory.getKeyManagers(),trustManagerFactory.getTrustManagers(),null);
+            SSLServerSocketFactory sslServerSocketFactory = sslContext.getServerSocketFactory();
+
+            Random random = new Random(Calendar.getInstance().getTimeInMillis());
+            int port = 8000 + random.nextInt(1000);
+            mSectionsPagerAdapter.hostingZeroConfFragment.setTextView("On: "+port);
+
+            SSLServerSocket currentServerSocket = (SSLServerSocket) sslServerSocketFactory.createServerSocket(port);
+
+            Toast.makeText(this,"Running on port:"+ port,Toast.LENGTH_SHORT).show();
+
+
+            StringBuilder usefulInfo = new StringBuilder();
+            usefulInfo.append("1:");
+            for (String str: currentServerSocket.getSupportedCipherSuites()){
+                usefulInfo.append(str);
+            }
+            usefulInfo.append("=====\n2:");
+            for (String str: currentServerSocket.getSupportedProtocols()){
+                usefulInfo.append(str);
+            }
+            currentServerSocket.setEnabledCipherSuites(currentServerSocket.getSupportedCipherSuites());
+            currentServerSocket.setEnabledProtocols(currentServerSocket.getSupportedProtocols());
+            currentServerSocket.setEnableSessionCreation(true);
+            currentServerSocket.setNeedClientAuth(true);
+            currentServerSocket.setWantClientAuth(true);
+            currentServerSocket.setReuseAddress(true);
+            Log.d(TAG,"Information"+usefulInfo.toString());
+
+            runningHandler = new ClientHandler();
+            runningHandler.execute((SSLServerSocket)currentServerSocket);
+
+        } catch (Exception ex)
+        {
+            Log.e(TAG, ex.toString());
+        }
+    }
+
+
+    private class ClientHandler extends AsyncTask<SSLServerSocket,String,Integer> {
+        SSLServerSocket mServerSocket = null;
+        // input Socket, status post and final result
+
+        protected Integer doInBackground(SSLServerSocket... currentServerSocket) {
+            mServerSocket = currentServerSocket[0];
+            Log.d(TAG,"Client Handler Running");
+            try {
+                mServerSocket.setSoTimeout(500);
+            }
+            catch (Exception ex){
+                Log.d(TAG,"failed to set the timeout");
+            }
+            Log.d(TAG,"Waiting for a new client");
+            while(!isCancelled()) {
+                try {
+                    Socket c = mServerSocket.accept();
+                    Log.d(TAG, "Accepted a new client");
+                    OutputStream out = c.getOutputStream();
+                    InputStream in = c.getInputStream();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+                    DataOutputStream dataOutputStream =new DataOutputStream(out);
+                    dataOutputStream.writeBytes("network={\n" +
+                            "  scan_ssid=1\n" +
+                            "  ssid=\"SECE\"\n" +
+                            "  key_mgmt=WPA-PSK\n" +
+                            "  proto=WPA2\n" +
+                            "  psk=\"irtlab7lw2\"\n" +
+                            "}");
+                    while(!isCancelled())
+                    {
+                        String str = reader.readLine();
+                        if (str == null || str.length() == 0)
+                            break;
+                        publishProgress("Received:"+str);
+                        dataOutputStream.writeBytes(str.toUpperCase()+"\n");
+                        if(str.length() >= 4 && str.substring(0,4).equals("exit"))
+                            break;
+                    }
+                    reader.close();
+                    dataOutputStream.close();
+                    in.close();
+                    out.close();
+                    c.close();
+                    Log.d(TAG,"Closed a client");
+
+                } catch (SocketTimeoutException ste)
+                {
+                    //
+                } catch (IOException io) {
+                    Log.e(TAG, io.toString());
+                }
+            }
+            return 0;
+        }
+
+        @Override
+        protected void onProgressUpdate(String... values) {
+            super.onProgressUpdate(values);
+            Toast.makeText(getApplicationContext(),"Get update:"+values[0],Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        protected void onPostExecute(Integer integer) {
+            super.onPostExecute(integer);
+            if(integer == 0)
+                Toast.makeText(getApplicationContext(),"Finished handling",Toast.LENGTH_SHORT).show();
+            else
+                Toast.makeText(getApplicationContext(),"Some error occurred",Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        protected void onCancelled() {
+
+            Log.d(TAG,"Thread canceling");
+            if(mServerSocket != null){
+                try {
+                    mServerSocket.close();
+                    Log.d(TAG,"Socket closed");
+                } catch (IOException io){
+                    Log.e(TAG,"failed to close the server socket"+io.toString());
+                }
+            }
+        }
 
     }
 

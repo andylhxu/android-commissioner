@@ -16,6 +16,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import org.w3c.dom.Text;
+
 import java.util.List;
 
 public class WiFiP2PFragment extends Fragment {
@@ -28,6 +30,7 @@ public class WiFiP2PFragment extends Fragment {
     private RecyclerView mRecyclerView;
     private WiFiDeviceAdaptor mDeviceAdaptor;
     private SwitchCompat mSwitchCompat;
+    private TextView mTextView;
 
     public static WiFiP2PFragment newInstance(){
         return new WiFiP2PFragment();
@@ -44,6 +47,7 @@ public class WiFiP2PFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_wifip2p, container, false);
 
+        mTextView = (TextView) rootView.findViewById(R.id.fragment_wifip2p_text);
         // handle the toggle button
         mSwitchCompat = (SwitchCompat) rootView.findViewById(R.id.fragment_wifip2p_switch);
         mSwitchCompat.setOnClickListener(new View.OnClickListener() {
@@ -53,10 +57,12 @@ public class WiFiP2PFragment extends Fragment {
                 {
                     Log.d(TAG, "Toggle On");
                     hostingAcitivity.setDiscoveryOn();
+                    mTextView.setText("On");
                 }
                 else{
                     Log.d(TAG, "Toggle Off");
                     hostingAcitivity.setDiscoveryOff();
+                    mTextView.setText("Off");
                 }
             }
         });
@@ -148,6 +154,9 @@ public class WiFiP2PFragment extends Fragment {
     public WiFiDeviceAdaptor getDeviceAdaptor(){
         return mDeviceAdaptor;
     }
+
+
+    // Async Worker
 
 
 }
