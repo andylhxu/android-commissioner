@@ -3,6 +3,7 @@ package edu.columbia.cs.androidiotcomissioner;
 import android.net.nsd.NsdServiceInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
@@ -73,6 +74,23 @@ public class ZeroConfFragment extends Fragment {
         mRecyclerView.setAdapter(mServiceAdaptor);
         mRecyclerView.addItemDecoration(new SimpleDividerItemDecoration(getActivity()));
 
+
+        // repeatable task
+
+        final Handler handler = new Handler();
+        // Define the code block to be executed
+        final Runnable runnableCode = new Runnable() {
+            @Override
+            public void run() {
+                // Do something here on the main thread
+                // Repeat this the same runnable code block again another 2 seconds
+                mServiceAdaptor.notifyDataSetChanged();
+                handler.postDelayed(this, 5000);
+            }
+        };
+
+        // Start the initial runnable task by posting through the handler
+        handler.postDelayed(runnableCode,5000);
         return rootView;
     }
 
@@ -135,8 +153,7 @@ public class ZeroConfFragment extends Fragment {
         public void bindService(NsdServiceInfo service){
             mNsdServiceInfo = service;
             mServiceNameTextView.setText(service.getServiceName());
-            if(service.getHost() != null)
-                mServiceAddressTextView.setText(service.getHost().toString()+":"+service.getPort());
+            mServiceAddressTextView.setText(service.getHost().toString().substring(1)+":"+service.getPort());
         }
 
     }

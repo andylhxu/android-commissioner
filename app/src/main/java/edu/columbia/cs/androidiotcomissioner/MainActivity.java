@@ -85,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
     // Server and Zeroconf related stuff
     private ClientHandler runningHandler;
     private List<NsdServiceInfo> mServiceList;
+    private NsdManager.DiscoveryListener mServiceDiscoveryListener;
 
 
 
@@ -329,8 +330,7 @@ public class MainActivity extends AppCompatActivity {
         // start the server
         startServer();
 
-        // discover the services
-        mNsdManager.discoverServices("_http._tcp", NsdManager.PROTOCOL_DNS_SD, new NsdManager.DiscoveryListener() {
+        mServiceDiscoveryListener = new NsdManager.DiscoveryListener() {
             @Override
             public void onStartDiscoveryFailed(String serviceType, int errorCode) {
                 Log.e(TAG, "start discovery failed");
@@ -338,7 +338,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopDiscoveryFailed(String serviceType, int errorCode) {
-                Log.e(TAG, "stop discovery failed");
+
             }
 
             @Override
@@ -361,16 +361,31 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     }
                 }
-                if(ifAdd)
-                    mServiceList.add(serviceInfo);
+                if(ifAdd) {
+                    // resolve before adding
+                    mNsdManager.resolveService(serviceInfo, new NsdManager.ResolveListener() {
+                        @Override
+                        public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                            Log.e(TAG, "Failed to resolve "+serviceInfo.getServiceName());
 
+                        }
+
+                        @Override
+                        public void onServiceResolved(NsdServiceInfo resolvedServiceInfo) {
+                            mServiceList.add(resolvedServiceInfo);
+                        }
+                    });
+
+                }
             }
 
             @Override
             public void onServiceLost(NsdServiceInfo serviceInfo) {
 
             }
-        });
+        };
+        // discover the services
+        mNsdManager.discoverServices("_http._tcp", NsdManager.PROTOCOL_DNS_SD, mServiceDiscoveryListener);
 
 
     }
@@ -378,8 +393,15 @@ public class MainActivity extends AppCompatActivity {
         if (runningHandler != null) {
             runningHandler.cancel(true);
             Toast.makeText(this, "Stopping the auth server", Toast.LENGTH_SHORT).show();
-            mSectionsPagerAdapter.hostingZeroConfFragment.setTextView("Off");
+
         }
+
+        mNsdManager.stopServiceDiscovery(mServiceDiscoveryListener);
+        // turn zeroconf off
+
+        mServiceList.clear();
+        mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
+        mSectionsPagerAdapter.hostingZeroConfFragment.setTextView("Off");
     }
 
     private void startServer(){
@@ -553,6 +575,7 @@ public class MainActivity extends AppCompatActivity {
         if(adaptor != null)
             adaptor.notifyDataSetChanged();
     }
+
 
     public List<WifiP2pDevice> getWifiP2pDevices()
     {
