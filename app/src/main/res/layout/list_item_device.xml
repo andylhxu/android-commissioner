@@ -3,6 +3,8 @@
               android:orientation="horizontal"
               android:layout_width="match_parent"
               android:layout_height="72dp"
+              android:clickable="true"
+              android:background="?attr/selectableItemBackground"
               android:gravity="center_vertical">
     <ImageView
         android:layout_width="0dp"
