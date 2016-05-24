@@ -75,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
     private ViewPager mViewPager;
 
     private static final String TAG = "MainActivity";
+    private static final String SERVICE_TYPE = "_enrolled._udp";
     int port_final;
 
 
@@ -176,6 +177,16 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_refresh) {
+            // rediscover the services
+            if (mServiceDiscoveryListener != null) {
+                Log.d(TAG, "stop and restart the service discovery listener");
+                mNsdManager.stopServiceDiscovery(mServiceDiscoveryListener);
+                mServiceList.clear();
+                mNsdManager.discoverServices(SERVICE_TYPE,NsdManager.PROTOCOL_DNS_SD, mServiceDiscoveryListener);
+                mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
+
+            }
+
             mSectionsPagerAdapter.hostingWiFiP2PFragment.getDeviceAdaptor().notifyDataSetChanged();
             mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
             Log.d(TAG,"Refresh called");
@@ -214,6 +225,25 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         unregisterReceiver(mBroadcastReceiver);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mManager == null || mChannel == null)
+            return;
+        mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG,"Successfully destroyed the group");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                Log.e(TAG,"Failed to destroy the P2P group upon exit!");
+
+            }
+        });
     }
 
     /**
@@ -414,9 +444,7 @@ public class MainActivity extends AppCompatActivity {
         if (runningHandler != null) {
             runningHandler.cancel(true);
             Toast.makeText(this, "Stopping the auth server", Toast.LENGTH_SHORT).show();
-
         }
-
 
         mNsdManager.stopServiceDiscovery(mServiceDiscoveryListener);
         // turn zeroconf off
@@ -424,6 +452,7 @@ public class MainActivity extends AppCompatActivity {
         mServiceList.clear();
         mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
         mSectionsPagerAdapter.hostingZeroConfFragment.setTextView("Off");
+        mServiceDiscoveryListener = null;
     }
 
     private void startServer(){
@@ -467,8 +496,7 @@ public class MainActivity extends AppCompatActivity {
             SSLServerSocketFactory sslServerSocketFactory = sslContext.getServerSocketFactory();
 
             Random random = new Random(Calendar.getInstance().getTimeInMillis());
-            // port_final = 8000 + random.nextInt(1000);
-            port_final = 8000 + 222;
+            port_final = 8000 + random.nextInt(1000);
             mSectionsPagerAdapter.hostingZeroConfFragment.setTextView("On: "+port_final);
 
             SSLServerSocket currentServerSocket = (SSLServerSocket) sslServerSocketFactory.createServerSocket(port_final);
