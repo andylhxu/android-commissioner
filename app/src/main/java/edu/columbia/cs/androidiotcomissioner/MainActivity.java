@@ -185,7 +185,9 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_refresh) {
+
             // rediscover the services
+            /*
             if (mServiceDiscoveryListener != null) {
                 Log.d(TAG, "stop and restart the service discovery listener");
                 mNsdManager.stopServiceDiscovery(mServiceDiscoveryListener);
@@ -194,6 +196,7 @@ public class MainActivity extends AppCompatActivity {
                 mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
 
             }
+            */
 
             mSectionsPagerAdapter.hostingWiFiP2PFragment.getDeviceAdaptor().notifyDataSetChanged();
             mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
@@ -206,7 +209,8 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onGroupInfoAvailable(WifiP2pGroup group) {
                     // Snackbar.make(findViewById(R.id.main_content),group.toString(),Snackbar.LENGTH_LONG).show();
-
+                    if (group == null)
+                        return;
                     Bundle args = new Bundle();
                     args.putString("message", group.toString());
 
@@ -451,7 +455,6 @@ public class MainActivity extends AppCompatActivity {
     public void setServerOff(){
         if (runningHandler != null) {
             runningHandler.cancel(true);
-            Toast.makeText(this, "Stopping the auth server", Toast.LENGTH_SHORT).show();
         }
 
         mNsdManager.stopServiceDiscovery(mServiceDiscoveryListener);
