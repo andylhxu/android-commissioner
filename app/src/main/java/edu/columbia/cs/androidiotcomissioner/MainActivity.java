@@ -44,8 +44,10 @@ import java.net.SocketTimeoutException;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
     public NsdManager mNsdManager;
     protected static final int[] CHANNEL_LIST = { 1, 3, 6, 11};
     private List<WifiP2pDevice> mWifiP2pDevices;
+    private List<String> mConnectedDevices;
     private WiFiBroadcastReceiver mBroadcastReceiver;
     protected static final int OWNER_INTENT_HIGH = 15;
 
@@ -93,6 +96,8 @@ public class MainActivity extends AppCompatActivity {
     // Server and Zeroconf related stuff
     private ClientHandler runningHandler;
     public List<NsdServiceInfo> mServiceList;
+    public Deque<String> mPendingService;
+    public Deque<String> mEnrolledService;
     private NsdManager.DiscoveryListener mServiceDiscoveryListener;
 
 
@@ -136,6 +141,8 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG,"Failed to obtain the NsdManager");
         }
         mServiceList = new ArrayList<>();
+        mPendingService = new ArrayDeque<>();
+        mEnrolledService = new ArrayDeque<>();
 
         final int channelNum = CHANNEL_LIST[new Random().nextInt(CHANNEL_LIST.length)];
         try {
@@ -157,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG,ex.toString());
         }
         mWifiP2pDevices = new ArrayList<>();
+        mConnectedDevices = new ArrayList<>();
 
     }
 
@@ -578,6 +586,7 @@ public class MainActivity extends AppCompatActivity {
                     out.close();
                     c.close();
                     Log.d(TAG,"Closed a client, sent: "+buffer.length+" bytes");
+                    mEnrolledService.addLast(mPendingService.pollFirst());
                 } catch (SocketTimeoutException ste)
                 {
                     //
@@ -654,9 +663,27 @@ public class MainActivity extends AppCompatActivity {
         mWifiP2pDevices.clear();
         mWifiP2pDevices.addAll(list);
         Log.d(TAG, "Update List gets called: "+mWifiP2pDevices.size()+"added");
-        WiFiP2PFragment.WiFiDeviceAdaptor adaptor = mSectionsPagerAdapter.hostingWiFiP2PFragment.getDeviceAdaptor();
+        final WiFiP2PFragment.WiFiDeviceAdaptor adaptor = mSectionsPagerAdapter.hostingWiFiP2PFragment.getDeviceAdaptor();
         if(adaptor != null)
             adaptor.notifyDataSetChanged();
+
+        mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+            @Override
+            public void onGroupInfoAvailable(WifiP2pGroup group) {
+                if(group == null)
+                    return;
+                if(group.getClientList().size() != 0){
+                    for(WifiP2pDevice device:group.getClientList())
+                    {
+                        if(mConnectedDevices.contains(device.deviceAddress) == false)
+                        {
+                            mConnectedDevices.add(device.deviceAddress);
+                            Toast.makeText(getApplicationContext(), device.deviceName +" is connected", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+            }
+        });
     }
 
 
@@ -665,6 +692,9 @@ public class MainActivity extends AppCompatActivity {
         return mWifiP2pDevices;
     }
 
+    public List<String> getConnectedP2pDevices(){
+        return mConnectedDevices;
+    }
     public List<NsdServiceInfo> getZeroConfServices(){
         return mServiceList;
     }

@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.w3c.dom.Text;
@@ -122,12 +123,14 @@ public class WiFiP2PFragment extends Fragment {
     public class WiFiDeviceHolder extends RecyclerView.ViewHolder{
         TextView mDeviceNameTextView;
         TextView mDeviceMacTextView;
+        ImageView mImageView;
         WifiP2pDevice mDevice;
 
         public WiFiDeviceHolder(View itemView) {
             super(itemView);
             mDeviceNameTextView = (TextView) itemView.findViewById(R.id.list_item_device_name);
             mDeviceMacTextView = (TextView) itemView.findViewById(R.id.list_item_device_address);
+            mImageView = (ImageView) itemView.findViewById(R.id.list_item_device_image);
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -141,6 +144,9 @@ public class WiFiP2PFragment extends Fragment {
             mDevice = device;
             mDeviceNameTextView.setText(device.deviceName);
             mDeviceMacTextView.setText(device.deviceAddress);
+            if(hostingAcitivity.getConnectedP2pDevices().contains(device.deviceAddress)){
+                mImageView.setImageResource(R.drawable.ic_iot_connected);
+            }
         }
 
     }

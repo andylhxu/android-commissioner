@@ -38,6 +38,11 @@ public class ConnectDialogFragment extends DialogFragment {
             return builder.create();
         }
         else if(this.getTag().contains(".")){
+
+            // obtain the service name
+            String name = getArguments().getString("servicename");
+            hostingActicity.mPendingService.addLast(name);
+
             int separator = this.getTag().indexOf(":");
             final String addr = this.getTag().substring(0,separator);
             final int port = (new Integer(this.getTag().substring(separator+1))).intValue();

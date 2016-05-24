@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -138,21 +139,15 @@ public class ZeroConfFragment extends Fragment {
     public class ZeroConfServiceHolder extends RecyclerView.ViewHolder{
         TextView mServiceNameTextView;
         TextView mServiceAddressTextView;
+        ImageView mServiceImageView;
         NsdServiceInfo mNsdServiceInfo;
 
         public ZeroConfServiceHolder(View itemView) {
             super(itemView);
             mServiceNameTextView = (TextView) itemView.findViewById(R.id.list_item_service_name);
             mServiceAddressTextView = (TextView) itemView.findViewById(R.id.list_item_service_address);
-            /* TODO
-            itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    DialogFragment connectDialog = new ConnectDialogFragment();
-                    connectDialog.show(getFragmentManager(),mDevice.deviceAddress);
-                }
-            });
-            */
+            mServiceImageView = (ImageView) itemView.findViewById(R.id.list_item_service_image);
+
             itemView.setLongClickable(true);
             itemView.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
@@ -187,6 +182,9 @@ public class ZeroConfFragment extends Fragment {
                             String result = serviceInfo.getHost().toString().substring(1)+":"+serviceInfo.getPort();
                             Log.d(TAG,"Resolved:"+result);
                             DialogFragment connectDialog = new ConnectDialogFragment();
+                            Bundle args = new Bundle();
+                            args.putString("servicename", serviceInfo.getServiceName());
+                            connectDialog.setArguments(args);
                             connectDialog.show(getFragmentManager(),result);
                         }
                     });
@@ -199,6 +197,14 @@ public class ZeroConfFragment extends Fragment {
             mServiceNameTextView.setText(service.getServiceName());
             if(service.getHost() != null)
                 mServiceAddressTextView.setText(service.getHost().toString().substring(1)+":"+service.getPort());
+
+            if(callingActivity.mPendingService.contains(service.getServiceName())){
+                mServiceImageView.setImageResource(R.drawable.ic_service_pending);
+            }
+
+            if(callingActivity.mEnrolledService.contains(service.getServiceName())){
+                mServiceImageView.setImageResource(R.drawable.ic_service_done);
+            }
         }
 
     }
