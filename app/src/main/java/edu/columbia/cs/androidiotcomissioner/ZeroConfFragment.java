@@ -213,7 +213,4 @@ public class ZeroConfFragment extends Fragment {
         return mServiceAdaptor;
     }
 
-    public void updateView(){
-        // mServiceAdaptor.notifyDataSetChanged();
-    }
 }

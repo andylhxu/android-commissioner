@@ -29,6 +29,7 @@ import android.view.MenuItem;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -379,6 +380,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onServiceFound(NsdServiceInfo serviceInfo) {
                 Log.d(TAG, "Service found:"+serviceInfo.getServiceName());
+
+
                 boolean ifAdd = true;
                 for(NsdServiceInfo info: mServiceList){
                     if(info.getServiceName().equals(serviceInfo.getServiceName())) {
@@ -393,12 +396,14 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onServiceLost(NsdServiceInfo serviceInfo) {
+                /*
                 for(NsdServiceInfo info:mServiceList){
                     if(serviceInfo.getServiceName().equals(info.getServiceName())) {
                         mServiceList.remove(info);
                         break;
                     }
                 }
+                */
             }
         };
         // discover the services
@@ -462,7 +467,8 @@ public class MainActivity extends AppCompatActivity {
             SSLServerSocketFactory sslServerSocketFactory = sslContext.getServerSocketFactory();
 
             Random random = new Random(Calendar.getInstance().getTimeInMillis());
-            port_final = 8000 + random.nextInt(1000);
+            // port_final = 8000 + random.nextInt(1000);
+            port_final = 8000 + 222;
             mSectionsPagerAdapter.hostingZeroConfFragment.setTextView("On: "+port_final);
 
             SSLServerSocket currentServerSocket = (SSLServerSocket) sslServerSocketFactory.createServerSocket(port_final);
@@ -501,6 +507,24 @@ public class MainActivity extends AppCompatActivity {
         // input Socket, status post and final result
 
         protected Integer doInBackground(SSLServerSocket... currentServerSocket) {
+
+            // preparing the file
+            InputStream ins = getResources().openRawResource(R.raw.networkconfig);
+            ByteArrayOutputStream ous = new ByteArrayOutputStream();
+            int size = 0;
+            byte[] buffer = new byte[1024];
+            try {
+                while ((size = ins.read(buffer, 0, 1024)) >= 0) {
+                    ous.write(buffer, 0, size);
+                }
+                ins.close();
+            }
+            catch (IOException ioe){
+                Log.e(TAG, ioe.toString());
+            }
+            buffer=ous.toByteArray();
+
+
             mServerSocket = currentServerSocket[0];
             Log.d(TAG,"Client Handler Running");
             try {
@@ -518,30 +542,14 @@ public class MainActivity extends AppCompatActivity {
                     InputStream in = c.getInputStream();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(in));
                     DataOutputStream dataOutputStream =new DataOutputStream(out);
-                    dataOutputStream.writeBytes("network={\n" +
-                            "  scan_ssid=1\n" +
-                            "  ssid=\"SECE\"\n" +
-                            "  key_mgmt=WPA-PSK\n" +
-                            "  proto=WPA2\n" +
-                            "  psk=\"irtlab7lw2\"\n" +
-                            "}");
-                    while(!isCancelled())
-                    {
-                        String str = reader.readLine();
-                        if (str == null || str.length() == 0)
-                            break;
-                        publishProgress("Received:"+str);
-                        dataOutputStream.writeBytes(str.toUpperCase()+"\n");
-                        if(str.length() >= 4 && str.substring(0,4).equals("exit"))
-                            break;
-                    }
+                    dataOutputStream.writeInt(buffer.length);
+                    dataOutputStream.write(buffer);
                     reader.close();
                     dataOutputStream.close();
                     in.close();
                     out.close();
                     c.close();
-                    Log.d(TAG,"Closed a client");
-
+                    Log.d(TAG,"Closed a client, sent: "+buffer.length+" bytes");
                 } catch (SocketTimeoutException ste)
                 {
                     //
@@ -594,7 +602,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             try {
-                Log.d(TAG, "Entering Client Initiator runnable" );
                 DatagramSocket socket = new DatagramSocket();
                 InetAddress addr = InetAddress.getByName(address);
                 String msg = "HelloReq:tcp:192.168.49.1:"+port_final;
@@ -611,7 +618,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void authorize(String address, int port){
-        Log.d(TAG, "called here");
         AuthorizeExecutor exec = new AuthorizeExecutor(address,port);
         new Thread(exec).start();
     }
