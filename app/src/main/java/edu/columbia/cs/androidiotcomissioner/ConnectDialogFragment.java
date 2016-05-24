@@ -25,7 +25,19 @@ public class ConnectDialogFragment extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         hostingActicity = (MainActivity) getActivity();
-        if(this.getTag().contains(".")){
+        if(this.getTag().contains("group")){
+            String ans = getArguments().getString("message");
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage(ans)
+                    .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // do nothin
+                        }
+                    });
+            return builder.create();
+        }
+        else if(this.getTag().contains(".")){
             int separator = this.getTag().indexOf(":");
             final String addr = this.getTag().substring(0,separator);
             final int port = (new Integer(this.getTag().substring(separator+1))).intValue();

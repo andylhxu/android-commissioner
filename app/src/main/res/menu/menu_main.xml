@@ -7,4 +7,9 @@
         android:orderInCategory="100"
         android:title="@string/action_refresh"
         app:showAsAction="never"/>
+    <item
+        android:id="@+id/action_group_info"
+        android:orderInCategory="200"
+        android:title="Group Info"
+        app:showAsAction="never"/>
 </menu>

@@ -9,8 +9,10 @@ import android.net.nsd.NsdServiceInfo;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
+import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SwitchCompat;
@@ -179,6 +181,24 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
+        if (id == R.id.action_group_info) {
+            mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+                @Override
+                public void onGroupInfoAvailable(WifiP2pGroup group) {
+                    // Snackbar.make(findViewById(R.id.main_content),group.toString(),Snackbar.LENGTH_LONG).show();
+
+                    Bundle args = new Bundle();
+                    args.putString("message", group.toString());
+
+                    ConnectDialogFragment f = new ConnectDialogFragment();
+                    f.setArguments(args);
+
+                    f.show(getSupportFragmentManager(),"group");
+
+                }
+            });
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -282,6 +302,7 @@ public class MainActivity extends AppCompatActivity {
         catch(Exception ex){
             Log.e(TAG,ex.toString());
         }
+
         // discover peers
         mManager.discoverPeers(mChannel,new WifiP2pManager.ActionListener(){
             @Override
@@ -337,7 +358,7 @@ public class MainActivity extends AppCompatActivity {
         mServiceDiscoveryListener = new NsdManager.DiscoveryListener() {
             @Override
             public void onStartDiscoveryFailed(String serviceType, int errorCode) {
-                Log.e(TAG, "start discovery failed");
+                Log.e(TAG, "start service discovery failed");
             }
 
             @Override
@@ -381,8 +402,7 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         // discover the services
-        mNsdManager.discoverServices("_http._tcp", NsdManager.PROTOCOL_DNS_SD, mServiceDiscoveryListener);
-
+        mNsdManager.discoverServices("_enrolled._udp", NsdManager.PROTOCOL_DNS_SD, mServiceDiscoveryListener);
 
     }
     public void setServerOff(){
@@ -391,6 +411,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Stopping the auth server", Toast.LENGTH_SHORT).show();
 
         }
+
 
         mNsdManager.stopServiceDiscovery(mServiceDiscoveryListener);
         // turn zeroconf off
@@ -534,7 +555,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onProgressUpdate(String... values) {
             super.onProgressUpdate(values);
-            Toast.makeText(getApplicationContext(),"Get update:"+values[0],Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),values[0],Toast.LENGTH_SHORT).show();
         }
 
         @Override
