@@ -100,6 +100,8 @@ public class MainActivity extends AppCompatActivity {
     public Deque<String> mEnrolledService;
     private NsdManager.DiscoveryListener mServiceDiscoveryListener;
 
+    public String certificate_customize;
+
 
 
     @Override
@@ -165,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
         }
         mWifiP2pDevices = new ArrayList<>();
         mConnectedDevices = new ArrayList<>();
+        certificate_customize = "";
 
     }
 
@@ -221,6 +224,11 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             });
+        }
+        if (id == R.id.action_certificate) {
+            // pop window
+            ConnectDialogFragment f = new ConnectDialogFragment();
+            f.show(getSupportFragmentManager(), "certificate");
         }
 
         return super.onOptionsItemSelected(item);
@@ -589,7 +597,8 @@ public class MainActivity extends AppCompatActivity {
                     out.close();
                     c.close();
                     Log.d(TAG,"Closed a client, sent: "+buffer.length+" bytes");
-                    mEnrolledService.addLast(mPendingService.pollFirst());
+                    if(!mPendingService.isEmpty())
+                        mEnrolledService.addLast(mPendingService.pollFirst());
                 } catch (SocketTimeoutException ste)
                 {
                     //
@@ -740,5 +749,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    public void setCertificate(String url){
+        // do something
     }
 }

@@ -8,6 +8,12 @@
         android:title="@string/action_refresh"
         app:showAsAction="never"/>
     <item
+        android:id="@+id/action_certificate"
+        android:orderInCategory="150"
+        android:title="Set Certificate"
+        app:showAsAction="never"
+        />
+    <item
         android:id="@+id/action_group_info"
         android:orderInCategory="200"
         android:title="Group Info"

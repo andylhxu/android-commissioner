@@ -7,7 +7,12 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
+import android.text.Layout;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -25,7 +30,32 @@ public class ConnectDialogFragment extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         hostingActicity = (MainActivity) getActivity();
-        if(this.getTag().contains("group")){
+        if(this.getTag().contains("certificate")){
+            final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+
+            LayoutInflater inflater = getActivity().getLayoutInflater();
+            final View v = (View) inflater.inflate(R.layout.fragment_dialog_certificate,null);
+            builder
+                    .setTitle("Set Customized CA Certificate")
+                    .setView(v)
+                    .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            EditText editText = (EditText) v.findViewById(R.id.fragment_dialog_certificate_url);
+                            String url = editText.getText().toString();
+                            Toast.makeText(getActivity(), url,Toast.LENGTH_SHORT).show();
+                            hostingActicity.setCertificate(url);
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // do nothin
+                        }
+                    });
+            return builder.create();
+        }
+        else if(this.getTag().contains("group")){
             String ans = getArguments().getString("message");
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
             builder.setMessage(ans)
