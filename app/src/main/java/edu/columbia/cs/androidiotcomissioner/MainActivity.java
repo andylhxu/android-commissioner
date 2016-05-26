@@ -30,9 +30,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.ion.Ion;
+
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -41,8 +46,11 @@ import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
@@ -79,8 +87,8 @@ public class MainActivity extends AppCompatActivity {
     private ViewPager mViewPager;
 
     private static final String TAG = "MainActivity";
-    // private static final String SERVICE_TYPE = "_enrolled._udp";
-    private static final String SERVICE_TYPE = "_workstation._tcp";
+    private static final String SERVICE_TYPE = "_enrolled._udp";
+    //private static final String SERVICE_TYPE = "_workstation._tcp";
     int port_final;
 
 
@@ -89,7 +97,8 @@ public class MainActivity extends AppCompatActivity {
     private WifiP2pManager mManager;
     private WifiP2pManager.Channel mChannel;
     public NsdManager mNsdManager;
-    protected static final int[] CHANNEL_LIST = { 1, 3, 6, 11};
+    // protected static final int[] CHANNEL_LIST = { 1, 3, 6, 11};
+    protected static final int[] CHANNEL_LIST = { 11};
     private List<WifiP2pDevice> mWifiP2pDevices;
     private List<String> mConnectedDevices;
     private WiFiBroadcastReceiver mBroadcastReceiver;
@@ -104,7 +113,10 @@ public class MainActivity extends AppCompatActivity {
     public Deque<String> mEnrolledService;
     private NsdManager.DiscoveryListener mServiceDiscoveryListener;
 
-    public String certificate_customize;
+    public String cacert_customize_url;
+    public byte[] cacert_customize_stream;
+    private static final String keyStore_pass = "123456";
+
 
 
 
@@ -171,7 +183,8 @@ public class MainActivity extends AppCompatActivity {
         }
         mWifiP2pDevices = new ArrayList<>();
         mConnectedDevices = new ArrayList<>();
-        certificate_customize = "";
+        cacert_customize_url = "";
+        cacert_customize_stream = null;
 
     }
 
@@ -254,7 +267,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         if (mManager == null || mChannel == null || !ifGroupCreated)
-            return;
+        {
+            super.onDestroy();
+        }
         mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -348,7 +363,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure(int reason) {
                 Log.e(TAG,"Failed to initiate the peer discovery process.");
-                Toast.makeText(MainActivity.this, "Failed to initiate peer discovery", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Failed to initiate peer discovery, please reset WiFi configuration", Toast.LENGTH_SHORT).show();
                 if(reason == WifiP2pManager.P2P_UNSUPPORTED)
                     Log.e(TAG,"Unsupported P2P");
                 else if(reason == WifiP2pManager.BUSY)
@@ -456,26 +471,36 @@ public class MainActivity extends AppCompatActivity {
         mNsdManager.stopServiceDiscovery(mServiceDiscoveryListener);
         // turn zeroconf off
 
-        mServiceList.clear();
+        mServiceList = new ArrayList<>();
+        mPendingService = new ArrayDeque<>();
+        mEnrolledService = new ArrayDeque<>();
+
         mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
         mSectionsPagerAdapter.hostingZeroConfFragment.setTextView("Off");
         mServiceDiscoveryListener = null;
+        mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
     }
 
     private void startServer(){
         try {
             // obtain key information
             Resources resources = getResources();
-            InputStream caInput = resources.openRawResource(R.raw.cacert);
-            InputStream keyStoreInput = resources.openRawResource(R.raw.keystore);
-
+            InputStream caInput;
+            InputStream keyStoreInput = resources.openRawResource(R.raw.keystore); // default keystore
+            if(cacert_customize_stream == null) {
+                caInput = resources.openRawResource(R.raw.cacert); // default ca
+            }
+            else{
+                caInput = new ByteArrayInputStream(cacert_customize_stream);
+                Log.d(TAG, "Set customized certificate");
+            }
 
             SSLContext sslContext; // the sslContext of our keystore
             KeyManagerFactory keyManagerFactory; // the Factory that creates a KeyManager
             KeyStore keyStore; // used to store our certificate-private key pair
 
-            char[] storePass = "123456".toCharArray();
-            char[] keyPass = "123456".toCharArray();
+            char[] storePass = keyStore_pass.toCharArray();
+            char[] keyPass = keyStore_pass.toCharArray();
 
             sslContext = SSLContext.getInstance("TLS");
 
@@ -772,5 +797,34 @@ public class MainActivity extends AppCompatActivity {
 
     public void setCertificate(String url){
         // do something
+        cacert_customize_url = url;
+        if(cacert_customize_url.length() != 0) {
+            CertDownloader downloader = new CertDownloader();
+            downloader.run();
+        }
+        else{
+            Toast.makeText(getApplicationContext(), "CA set to default", Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    class CertDownloader implements Runnable{
+
+        @Override
+        public void run() {
+            Ion.with(getApplicationContext())
+                    .load(cacert_customize_url)
+                    .asByteArray()
+                    .setCallback(new FutureCallback<byte[]>() {
+                        @Override
+                        public void onCompleted(Exception e, byte[] result) {
+
+                                cacert_customize_stream = result;
+                                Toast.makeText(getApplicationContext(), "CA loaded", Toast.LENGTH_SHORT).show();
+                                Log.d(TAG, "CA loaded");
+                        }
+                    });
+
+        }
     }
 }

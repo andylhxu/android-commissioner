@@ -38,12 +38,17 @@ public class ConnectDialogFragment extends DialogFragment {
             builder
                     .setTitle("Set Customized CA Certificate")
                     .setView(v)
+                    .setNeutralButton("Default", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            hostingActivity.setCertificate("");
+                        }
+                    })
                     .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             EditText editText = (EditText) v.findViewById(R.id.fragment_dialog_certificate_url);
                             String url = editText.getText().toString();
-                            Toast.makeText(getActivity(), url,Toast.LENGTH_SHORT).show();
                             hostingActivity.setCertificate(url);
                         }
                     })
