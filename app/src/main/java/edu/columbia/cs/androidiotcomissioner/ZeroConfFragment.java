@@ -2,13 +2,13 @@ package edu.columbia.cs.androidiotcomissioner;
 
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
-import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Parcelable;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
-import android.support.v7.app.AlertDialog;
+import android.support.v4.os.ParcelableCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SwitchCompat;
@@ -20,11 +20,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 
@@ -183,9 +178,11 @@ public class ZeroConfFragment extends Fragment {
                             Log.d(TAG,"Resolved:"+result);
                             DialogFragment connectDialog = new ConnectDialogFragment();
                             Bundle args = new Bundle();
-                            args.putString("servicename", serviceInfo.getServiceName());
+                            args.putString("name", serviceInfo.getServiceName());
+                            args.putSerializable("address", serviceInfo.getHost());
+                            args.putInt("port", serviceInfo.getPort());
                             connectDialog.setArguments(args);
-                            connectDialog.show(getFragmentManager(),result);
+                            connectDialog.show(getFragmentManager(),"service");
                         }
                     });
                 }

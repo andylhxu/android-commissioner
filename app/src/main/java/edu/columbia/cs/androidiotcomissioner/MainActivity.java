@@ -45,6 +45,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
@@ -266,9 +267,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        super.onDestroy();
         if (mManager == null || mChannel == null || !ifGroupCreated)
         {
-            super.onDestroy();
+            return;
         }
         mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
             @Override
@@ -283,7 +285,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-        super.onDestroy();
+
     }
 
     @Override
@@ -434,7 +436,6 @@ public class MainActivity extends AppCompatActivity {
             public void onServiceFound(NsdServiceInfo serviceInfo) {
                 Log.d(TAG, "Service found:"+serviceInfo.getServiceName());
 
-
                 boolean ifAdd = true;
                 for(NsdServiceInfo info: mServiceList){
                     if(info.getServiceName().equals(serviceInfo.getServiceName())) {
@@ -471,11 +472,11 @@ public class MainActivity extends AppCompatActivity {
         mNsdManager.stopServiceDiscovery(mServiceDiscoveryListener);
         // turn zeroconf off
 
-        mServiceList = new ArrayList<>();
-        mPendingService = new ArrayDeque<>();
-        mEnrolledService = new ArrayDeque<>();
+        mServiceList.clear();
+        mPendingService.clear();
+        mEnrolledService.clear();
 
-        mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
+
         mSectionsPagerAdapter.hostingZeroConfFragment.setTextView("Off");
         mServiceDiscoveryListener = null;
         mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
@@ -654,9 +655,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public class AuthorizeExecutor implements Runnable{
-        String address;
+        InetAddress address;
         int port;
-        public AuthorizeExecutor(String addr, int p) {
+        public AuthorizeExecutor(InetAddress addr, int p) {
             address = addr;
             port = p;
         }
@@ -665,12 +666,12 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             try {
                 DatagramSocket socket = new DatagramSocket();
-                InetAddress addr = InetAddress.getByName(address);
+
                 String msg = "HelloReq:tcp:192.168.49.1:"+port_final;
-                DatagramPacket packet = new DatagramPacket(msg.getBytes(),msg.length(), addr, port);
+                DatagramPacket packet = new DatagramPacket(msg.getBytes(),msg.length(), address, port);
 
                 socket.send(packet);
-                Log.d(TAG, "sent --- "+ msg + " to "+address+":"+port);
+                Log.d(TAG, "sent --- "+ msg + " to "+address.toString().substring(1)+":"+port);
 
             }
             catch(Exception ex){
@@ -679,7 +680,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void authorize(String address, int port){
+    public void authorize(InetAddress address, int port){
         AuthorizeExecutor exec = new AuthorizeExecutor(address,port);
         new Thread(exec).start();
     }

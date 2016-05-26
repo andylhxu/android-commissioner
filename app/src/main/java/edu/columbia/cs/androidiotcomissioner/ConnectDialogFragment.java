@@ -12,15 +12,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.Toast;
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 
-/**
- * Created by FreedomSworder on 5/22/16.
- */
 
 // General Alert Dialog
 public class ConnectDialogFragment extends DialogFragment {
@@ -72,26 +66,28 @@ public class ConnectDialogFragment extends DialogFragment {
                     });
             return builder.create();
         }
-        else if(this.getTag().contains(".")){
+        else if(this.getTag().contains("service")){
 
             // obtain the service name
-            String name = getArguments().getString("servicename");
+            Bundle args = getArguments();
+            String name = args.getString("name");
             hostingActivity.mPendingService.addLast(name);
 
-            int separator = this.getTag().indexOf(":");
-            final String addr = this.getTag().substring(0,separator);
-            final int port = (new Integer(this.getTag().substring(separator+1))).intValue();
+            final InetAddress address = (InetAddress) args.getSerializable("address");
+
+            final int port = args.getInt("port");
             // authorize device
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-            builder.setMessage("Authorize this device with "+addr+":"+port)
-                    .setPositiveButton("Grant", new DialogInterface.OnClickListener() {
+            builder.setTitle("Authorize <"+name+">")
+                    .setMessage(address.toString().substring(1)+":"+port)
+                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             // perform authorization
-                            hostingActivity.authorize( addr, port );
+                            hostingActivity.authorize(address, port );
                         }
                     })
-                    .setNegativeButton("Deny", new DialogInterface.OnClickListener() {
+                    .setNegativeButton("No", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             // do nothing
@@ -117,18 +113,21 @@ public class ConnectDialogFragment extends DialogFragment {
             return dialog;
         }
         else {
-            final String address = this.getTag();
+            Bundle args = getArguments();
+            final String address = args.getString("address");
+            final String name = args.getString("name");
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
             builder
-                    .setMessage("Connect to this device?")
-                    .setPositiveButton("Connect", new DialogInterface.OnClickListener() {
+                    .setTitle("Connect to?")
+                    .setMessage(name+" ("+address+")")
+                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             Log.d(TAG, "Connecting the new device");
                             hostingActivity.connectToP2PDevice(address);
                         }
                     })
-                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    .setNegativeButton("No", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             Log.d(TAG, "Cancelling the connection");

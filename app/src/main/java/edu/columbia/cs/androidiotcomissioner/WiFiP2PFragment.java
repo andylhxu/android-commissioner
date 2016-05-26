@@ -153,7 +153,11 @@ public class WiFiP2PFragment extends Fragment {
                 @Override
                 public void onClick(View v) {
                     DialogFragment connectDialog = new ConnectDialogFragment();
-                    connectDialog.show(getFragmentManager(),mDevice.deviceAddress);
+                    Bundle args = new Bundle();
+                    args.putString("name", mDevice.deviceName);
+                    args.putString("address",mDevice.deviceAddress);
+                    connectDialog.setArguments(args);
+                    connectDialog.show(getFragmentManager(),"p2p");
                 }
             });
         }
