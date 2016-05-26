@@ -11,7 +11,7 @@
         android:layout_weight="1"
         android:layout_height="wrap_content"
         android:id="@+id/list_item_device_image"
-        android:src="@drawable/ic_iot_device"
+        android:src="@drawable/ic_iot_disconnected"
         android:paddingLeft="18dp"/>
     <LinearLayout
         android:layout_height="match_parent"

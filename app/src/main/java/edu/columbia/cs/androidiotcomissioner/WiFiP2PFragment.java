@@ -3,6 +3,7 @@ package edu.columbia.cs.androidiotcomissioner;
 import android.app.Dialog;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
@@ -82,6 +83,23 @@ public class WiFiP2PFragment extends Fragment {
         mRecyclerView.setAdapter(mDeviceAdaptor);
         mRecyclerView.addItemDecoration(new SimpleDividerItemDecoration(getActivity()));
 
+
+        final Handler handler = new Handler();
+
+        // Define the code block to be executed regularly
+        final Runnable runnableCode = new Runnable() {
+            @Override
+            public void run() {
+                // Do something here on the main thread
+                // Repeat this the same runnable code block again another 2 seconds
+                mDeviceAdaptor.notifyDataSetChanged();
+                handler.postDelayed(this, 1000);
+            }
+        };
+
+        // Start the initial runnable task by posting through the handler
+        handler.postDelayed(runnableCode,1000);
+
         return rootView;
     }
 
@@ -146,6 +164,10 @@ public class WiFiP2PFragment extends Fragment {
             mDeviceMacTextView.setText(device.deviceAddress);
             if(hostingAcitivity.getConnectedP2pDevices().contains(device.deviceAddress)){
                 mImageView.setImageResource(R.drawable.ic_iot_connected);
+                setMessage("Connected");
+            }
+            else{
+                mImageView.setImageResource(R.drawable.ic_iot_disconnected);
             }
         }
 
@@ -161,8 +183,13 @@ public class WiFiP2PFragment extends Fragment {
         return mDeviceAdaptor;
     }
 
+    public void setMessage(String msg){
+        mTextView.setText(msg);
+    }
 
     // Async Worker
+
+
 
 
 }

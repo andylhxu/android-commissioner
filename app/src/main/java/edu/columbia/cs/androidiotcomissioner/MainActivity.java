@@ -2,6 +2,7 @@ package edu.columbia.cs.androidiotcomissioner;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.net.nsd.NsdManager;
@@ -14,6 +15,7 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SwitchCompat;
 import android.support.v7.widget.Toolbar;
@@ -77,7 +79,8 @@ public class MainActivity extends AppCompatActivity {
     private ViewPager mViewPager;
 
     private static final String TAG = "MainActivity";
-    private static final String SERVICE_TYPE = "_enrolled._udp";
+    // private static final String SERVICE_TYPE = "_enrolled._udp";
+    private static final String SERVICE_TYPE = "_workstation._tcp";
     int port_final;
 
 
@@ -91,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
     private List<String> mConnectedDevices;
     private WiFiBroadcastReceiver mBroadcastReceiver;
     protected static final int OWNER_INTENT_HIGH = 15;
+    private boolean ifGroupCreated = false;
 
 
     // Server and Zeroconf related stuff
@@ -249,13 +253,13 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-        if (mManager == null || mChannel == null)
+        if (mManager == null || mChannel == null || !ifGroupCreated)
             return;
         mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
                 Log.d(TAG,"Successfully destroyed the group");
+                ifGroupCreated = false;
             }
 
             @Override
@@ -264,6 +268,13 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+        super.onDestroy();
+    }
+
+    @Override
+    public void onBackPressed() {
+        ConnectDialogFragment fragment = new ConnectDialogFragment();
+        fragment.show(getSupportFragmentManager(),"quit");
     }
 
     /**
@@ -327,38 +338,12 @@ public class MainActivity extends AppCompatActivity {
 
     public void setDiscoveryOn()
     {
-        // create a wifi p2p group
-        mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Log.d(TAG,"Wifip2pgroup successfully created");
-            }
-
-            @Override
-            public void onFailure(int reason) {
-
-                Toast.makeText(getApplicationContext(),R.string.create_group_fail,Toast.LENGTH_SHORT).show();
-                if(reason == WifiP2pManager.BUSY)
-                    Log.e(TAG,"Wifip2pgroup failed to create: BUSY");
-                else if (reason == WifiP2pManager.ERROR)
-                    Log.e(TAG,"Wifip2pgroup failed to create: ERROR");
-                else
-                    Log.e(TAG,"Wifip2pgroup failed to create: P2P Unsupported");
-                finish();
-            }
-        });
-        try {
-            Thread.sleep(200, 0);
-        }
-        catch(Exception ex){
-            Log.e(TAG,ex.toString());
-        }
-
         // discover peers
         mManager.discoverPeers(mChannel,new WifiP2pManager.ActionListener(){
             @Override
             public void onSuccess() {
                 Log.d(TAG,"WiFiBroadcastReceiver handled peer discovery request");
+                mSectionsPagerAdapter.hostingWiFiP2PFragment.setMessage("Discovering Peers");
             }
             @Override
             public void onFailure(int reason) {
@@ -387,19 +372,22 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "Failed to stop peer discovery");
             }
         });
-        mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Log.d(TAG,"Successfully destroyed the group");
-            }
+        if(ifGroupCreated) {
+            mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    Log.d(TAG, "Successfully destroyed the group");
+                }
 
-            @Override
-            public void onFailure(int reason) {
-                Log.e(TAG,"Failed to destroy the P2P group upon exit!");
+                @Override
+                public void onFailure(int reason) {
+                    Log.e(TAG, "Failed to destroy the P2P group upon exit!");
 
-            }
-        });
+                }
+            });
+        }
         updateDeviceList(new ArrayList<WifiP2pDevice>());
+        mConnectedDevices = new ArrayList<>();
     }
 
     public void setServerOn(){
@@ -457,7 +445,7 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         // discover the services
-        mNsdManager.discoverServices("_enrolled._udp", NsdManager.PROTOCOL_DNS_SD, mServiceDiscoveryListener);
+        mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mServiceDiscoveryListener);
 
     }
     public void setServerOff(){
@@ -721,6 +709,36 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void connectToP2PDevice(final String address){
+        // create a wifi p2p group if a group is not formed
+        if(!ifGroupCreated) {
+            mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    ifGroupCreated = true;
+                    Log.d(TAG, "Wifip2pgroup successfully created");
+
+                }
+
+                @Override
+                public void onFailure(int reason) {
+
+                    Toast.makeText(getApplicationContext(), R.string.create_group_fail, Toast.LENGTH_SHORT).show();
+                    if (reason == WifiP2pManager.BUSY)
+                        Log.e(TAG, "Wifip2pgroup failed to create: BUSY");
+                    else if (reason == WifiP2pManager.ERROR)
+                        Log.e(TAG, "Wifip2pgroup failed to create: ERROR");
+                    else
+                        Log.e(TAG, "Wifip2pgroup failed to create: P2P Unsupported");
+                    finish();
+                }
+            });
+            try {
+                Thread.sleep(200, 0);
+            } catch (Exception ex) {
+                Log.e(TAG, ex.toString());
+            }
+        }
+
         WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = address;
         config.groupOwnerIntent = OWNER_INTENT_HIGH;
@@ -733,6 +751,7 @@ public class MainActivity extends AppCompatActivity {
             public void onSuccess() {
                 Toast.makeText(getApplicationContext(),"Invitation sent",Toast.LENGTH_SHORT).show();
                 // register this connection!!!
+                mSectionsPagerAdapter.hostingWiFiP2PFragment.setMessage("Group created");
             }
 
             @Override

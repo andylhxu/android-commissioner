@@ -25,11 +25,11 @@ import java.net.InetAddress;
 // General Alert Dialog
 public class ConnectDialogFragment extends DialogFragment {
     public static final String TAG = "ConnectDialogFragment";
-    public MainActivity hostingActicity;
+    public MainActivity hostingActivity;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        hostingActicity = (MainActivity) getActivity();
+        hostingActivity = (MainActivity) getActivity();
         if(this.getTag().contains("certificate")){
             final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
@@ -44,7 +44,7 @@ public class ConnectDialogFragment extends DialogFragment {
                             EditText editText = (EditText) v.findViewById(R.id.fragment_dialog_certificate_url);
                             String url = editText.getText().toString();
                             Toast.makeText(getActivity(), url,Toast.LENGTH_SHORT).show();
-                            hostingActicity.setCertificate(url);
+                            hostingActivity.setCertificate(url);
                         }
                     })
                     .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -71,7 +71,7 @@ public class ConnectDialogFragment extends DialogFragment {
 
             // obtain the service name
             String name = getArguments().getString("servicename");
-            hostingActicity.mPendingService.addLast(name);
+            hostingActivity.mPendingService.addLast(name);
 
             int separator = this.getTag().indexOf(":");
             final String addr = this.getTag().substring(0,separator);
@@ -83,7 +83,7 @@ public class ConnectDialogFragment extends DialogFragment {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             // perform authorization
-                            hostingActicity.authorize( addr, port );
+                            hostingActivity.authorize( addr, port );
                         }
                     })
                     .setNegativeButton("Deny", new DialogInterface.OnClickListener() {
@@ -95,6 +95,22 @@ public class ConnectDialogFragment extends DialogFragment {
             return builder.create();
 
         }
+        else if(getTag().equals("quit")){
+            AlertDialog dialog = new AlertDialog.Builder(getActivity())
+                    .setTitle("Closing the Commissioner")
+                    .setMessage("Are you sure you want to quit?")
+                    .setPositiveButton("Yes", new DialogInterface.OnClickListener()
+                    {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            getActivity().finish();
+                        }
+
+                    })
+                    .setNegativeButton("No", null)
+                    .create();
+            return dialog;
+        }
         else {
             final String address = this.getTag();
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
@@ -104,7 +120,7 @@ public class ConnectDialogFragment extends DialogFragment {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             Log.d(TAG, "Connecting the new device");
-                            hostingActicity.connectToP2PDevice(address);
+                            hostingActivity.connectToP2PDevice(address);
                         }
                     })
                     .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
