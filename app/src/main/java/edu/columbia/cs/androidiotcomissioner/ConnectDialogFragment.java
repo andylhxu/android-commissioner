@@ -197,6 +197,9 @@ public class ConnectDialogFragment extends DialogFragment {
                                 }
                             };
                             new Thread(r).start();
+                            // remove from the pending list
+                            if(!hostingActivity.mPendingService.isEmpty())
+                                hostingActivity.mPendingService.removeFirst();
                         }
                     })
                     .create();
