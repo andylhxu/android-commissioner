@@ -13,6 +13,7 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
 import android.support.v7.app.AlertDialog;
@@ -68,6 +69,8 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManagerFactory;
 
 public class MainActivity extends AppCompatActivity {
@@ -113,6 +116,8 @@ public class MainActivity extends AppCompatActivity {
     public Deque<String> mPendingService;
     public Deque<String> mEnrolledService;
     private NsdManager.DiscoveryListener mServiceDiscoveryListener;
+
+    private static final int RESOLVING_INTERVAL = 5000;
 
     public String cacert_customize_url;
     public byte[] cacert_customize_stream;
@@ -463,6 +468,38 @@ public class MainActivity extends AppCompatActivity {
         // discover the services
         mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mServiceDiscoveryListener);
 
+        // for each service discovered, resolve the address
+        final Handler handler = new Handler();
+        // Define the code block to be executed
+        final Runnable runnableCode = new Runnable() {
+            @Override
+            public void run() {
+                // Do something here on the main thread
+                // Repeat this the same runnable code block again another 5 seconds
+                for(int i = 0 ; i < mServiceList.size(); i++){
+                    final NsdServiceInfo info = mServiceList.get(i);
+                    mNsdManager.resolveService(info, new NsdManager.ResolveListener() {
+                        @Override
+                        public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                            Toast.makeText(getApplicationContext(),"Failed to resolve "+serviceInfo.getServiceName(),Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onServiceResolved(NsdServiceInfo serviceInfo) {
+                            info.setHost(serviceInfo.getHost());
+                            info.setPort(serviceInfo.getPort());
+                            Log.d(TAG, "Resolved auto: "+serviceInfo.getHost().toString()+" and "+serviceInfo.getPort());
+                        }
+                    });
+
+                }
+                handler.postDelayed(this, RESOLVING_INTERVAL);
+                mSectionsPagerAdapter.hostingZeroConfFragment.getServiceAdaptor().notifyDataSetChanged();
+            }
+        };
+        // Start the initial runnable task by posting through the handler
+        handler.postDelayed(runnableCode,RESOLVING_INTERVAL);
+
     }
     public void setServerOff(){
         if (runningHandler != null) {
@@ -597,8 +634,32 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG,"Waiting for a new client");
             while(!isCancelled()) {
                 try {
-                    Socket c = mServerSocket.accept();
+                    SSLSocket c = (SSLSocket) mServerSocket.accept();
                     Log.d(TAG, "Accepted a new client");
+
+                    // handling certs
+                    Certificate client_ca = null;
+                    Certificate client_public = null;
+                    try {
+                    SSLSession session = c.getSession();
+
+                    Certificate[] certs = session.getPeerCertificates();
+
+                        client_ca = certs[0];
+                        client_public = certs[1];
+                    }
+                    catch (Exception ex){
+                        Log.e(TAG, "Cannot read client certificate");
+                        continue;
+                    }
+                    if(client_ca == null || client_public == null){
+                        Log.e(TAG, "Client certificate empty");
+                        continue;
+                    }
+                    // now we have some certificate, let the user verify them
+
+
+
                     OutputStream out = c.getOutputStream();
                     InputStream in = c.getInputStream();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -681,6 +742,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void authorize(InetAddress address, int port){
+
         AuthorizeExecutor exec = new AuthorizeExecutor(address,port);
         new Thread(exec).start();
     }

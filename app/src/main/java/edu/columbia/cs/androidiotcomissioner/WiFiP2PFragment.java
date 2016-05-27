@@ -26,7 +26,7 @@ public class WiFiP2PFragment extends Fragment {
 
     public static final String TAG = "WiFiP2PFragment";
 
-    MainActivity hostingAcitivity;
+    MainActivity hostingActivity;
 
     // for the Lists
     private RecyclerView mRecyclerView;
@@ -41,7 +41,7 @@ public class WiFiP2PFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        hostingAcitivity = (MainActivity) getActivity();
+        hostingActivity = (MainActivity) getActivity();
     }
 
     @Nullable
@@ -58,12 +58,12 @@ public class WiFiP2PFragment extends Fragment {
                 if(mSwitchCompat.isChecked())
                 {
                     Log.d(TAG, "Toggle On");
-                    hostingAcitivity.setDiscoveryOn();
+                    hostingActivity.setDiscoveryOn();
                     mTextView.setText("On");
                 }
                 else{
                     Log.d(TAG, "Toggle Off");
-                    hostingAcitivity.setDiscoveryOff();
+                    hostingActivity.setDiscoveryOff();
                     mTextView.setText("Off");
                 }
             }
@@ -79,7 +79,7 @@ public class WiFiP2PFragment extends Fragment {
             }
         };
         mRecyclerView.setLayoutManager(mLayoutManager);
-        mDeviceAdaptor= new WiFiDeviceAdaptor(hostingAcitivity.getWifiP2pDevices());
+        mDeviceAdaptor= new WiFiDeviceAdaptor(hostingActivity.getWifiP2pDevices());
         mRecyclerView.setAdapter(mDeviceAdaptor);
         mRecyclerView.addItemDecoration(new SimpleDividerItemDecoration(getActivity()));
 
@@ -166,7 +166,7 @@ public class WiFiP2PFragment extends Fragment {
             mDevice = device;
             mDeviceNameTextView.setText(device.deviceName);
             mDeviceMacTextView.setText(device.deviceAddress);
-            if(hostingAcitivity.getConnectedP2pDevices().contains(device.deviceAddress)){
+            if(hostingActivity.getConnectedP2pDevices().contains(device.deviceAddress)){
                 mImageView.setImageResource(R.drawable.ic_iot_connected);
                 setMessage("Connected");
             }

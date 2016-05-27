@@ -70,8 +70,7 @@ public class ConnectDialogFragment extends DialogFragment {
 
             // obtain the service name
             Bundle args = getArguments();
-            String name = args.getString("name");
-            hostingActivity.mPendingService.addLast(name);
+            final String name = args.getString("name");
 
             final InetAddress address = (InetAddress) args.getSerializable("address");
 
@@ -84,6 +83,7 @@ public class ConnectDialogFragment extends DialogFragment {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             // perform authorization
+                            hostingActivity.mPendingService.addLast(name);
                             hostingActivity.authorize(address, port );
                         }
                     })

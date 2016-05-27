@@ -199,8 +199,11 @@ public class ZeroConfFragment extends Fragment {
                 mServiceImageView.setImageResource(R.drawable.ic_service_pending);
             }
 
-            if(callingActivity.mEnrolledService.contains(service.getServiceName())){
+            else if(callingActivity.mEnrolledService.contains(service.getServiceName())){
                 mServiceImageView.setImageResource(R.drawable.ic_service_done);
+            }
+            else{
+                mServiceImageView.setImageResource(R.drawable.ic_service_standby);
             }
         }
 
