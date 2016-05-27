@@ -4,6 +4,8 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
@@ -13,7 +15,16 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.InetAddress;
+
+import javax.net.ssl.SSLSocket;
 
 
 // General Alert Dialog
@@ -115,9 +126,74 @@ public class ConnectDialogFragment extends DialogFragment {
         else if (getTag().equals("client")){
             String cacert = getArguments().getString("ca");
             String clientcert = getArguments().getString("public");
+            final SSLSocket c = ((MainActivity) getActivity()).mCurrentClient;
+
             AlertDialog dialog = new AlertDialog.Builder(getActivity())
-                    .setTitle("Authorize?").create();
-            return null;
+                    .setTitle("Authorize?")
+                    .setMessage(cacert+clientcert)
+                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Runnable r = new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        // preparing the file
+                                        InputStream ins = getResources().openRawResource(R.raw.networkconfig);
+                                        ByteArrayOutputStream ous = new ByteArrayOutputStream();
+                                        int size = 0;
+                                        byte[] buffer = new byte[1024];
+                                        try {
+                                            while ((size = ins.read(buffer, 0, 1024)) >= 0) {
+                                                ous.write(buffer, 0, size);
+                                            }
+                                            ins.close();
+                                        }
+                                        catch (IOException ioe){
+                                            Log.e(TAG, ioe.toString());
+                                        }
+                                        byte [] bufferAll = ous.toByteArray();
+                                        OutputStream out = c.getOutputStream();
+                                        InputStream in = c.getInputStream();
+                                        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+                                        DataOutputStream dataOutputStream = new DataOutputStream(out);
+                                        dataOutputStream.writeInt(bufferAll.length);
+                                        dataOutputStream.write(bufferAll);
+                                        reader.close();
+                                        dataOutputStream.close();
+                                        in.close();
+                                        out.close();
+                                        c.close();
+                                        Log.d(TAG, "Closed a client, sent: " + bufferAll.length + " bytes");
+                                        if (!hostingActivity.mPendingService.isEmpty())
+                                            hostingActivity.mEnrolledService.addLast(hostingActivity.mPendingService.pollFirst());
+                                    }
+                                    catch (Exception ex){
+                                        Log.e(TAG, ex.toString());
+                                    }
+                                }
+                            };
+                            new Thread(r).start();
+                        }
+                    })
+                    .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Runnable r = new Runnable() {
+                                @Override
+                                public void run() {
+                                    try{
+                                        c.close();
+                                    } catch (Exception ex){
+                                        Log.e(TAG,ex.toString());
+                                    }
+                                }
+                            };
+                            new Thread(r).start();
+                        }
+                    })
+                    .create();
+            return dialog;
 
         }
         else {

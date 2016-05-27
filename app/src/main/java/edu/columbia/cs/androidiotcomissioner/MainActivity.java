@@ -112,6 +112,8 @@ public class MainActivity extends AppCompatActivity {
 
     // Server and Zeroconf related stuff
     private ClientHandler runningHandler;
+    public SSLSocket mCurrentClient;
+
     public List<NsdServiceInfo> mServiceList;
     public Deque<String> mPendingService;
     public Deque<String> mEnrolledService;
@@ -608,21 +610,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPreExecute() {
-            // preparing the file
-            InputStream ins = getResources().openRawResource(R.raw.networkconfig);
-            ByteArrayOutputStream ous = new ByteArrayOutputStream();
-            int size = 0;
-            byte[] buffer = new byte[1024];
-            try {
-                while ((size = ins.read(buffer, 0, 1024)) >= 0) {
-                    ous.write(buffer, 0, size);
-                }
-                ins.close();
-            }
-            catch (IOException ioe){
-                Log.e(TAG, ioe.toString());
-            }
-            bufferAll = ous.toByteArray();
+
             super.onPreExecute();
         }
 
@@ -640,6 +628,7 @@ public class MainActivity extends AppCompatActivity {
             while(!isCancelled()) {
                 try {
                     SSLSocket c = (SSLSocket) mServerSocket.accept();
+                    mCurrentClient = c;
                     Log.d(TAG, "Accepted a new client");
                     // handling certs
                     Certificate client_ca = null;
@@ -660,30 +649,10 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "Client certificate empty");
                         continue;
                     }
-                    // now we have some certificate, let the user verify them
-                    try {
-                        wait(10000);
-                    }
-                    catch(Exception io){
-                        Log.e(TAG, "Interrupt exception in Async");
-                    }
 
-                    // publishProgress(client_ca.toString(), client_public.toString());
+                    publishProgress(client_ca.toString(), client_public.toString());
 
-                    OutputStream out = c.getOutputStream();
-                    InputStream in = c.getInputStream();
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-                    DataOutputStream dataOutputStream =new DataOutputStream(out);
-                    dataOutputStream.writeInt(bufferAll.length);
-                    dataOutputStream.write(bufferAll);
-                    reader.close();
-                    dataOutputStream.close();
-                    in.close();
-                    out.close();
-                    c.close();
-                    Log.d(TAG,"Closed a client, sent: "+bufferAll.length+" bytes");
-                    if(!mPendingService.isEmpty())
-                        mEnrolledService.addLast(mPendingService.pollFirst());
+
                 } catch (SocketTimeoutException ste)
                 {
                     //
