@@ -602,7 +602,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private class ClientHandler extends AsyncTask<SSLServerSocket,String,Integer> {
+    private class ClientHandler extends AsyncTask<SSLServerSocket,Certificate,Integer> {
         SSLServerSocket mServerSocket = null;
         // input Socket, status post and final result
 
@@ -650,7 +650,7 @@ public class MainActivity extends AppCompatActivity {
                         continue;
                     }
 
-                    publishProgress(client_ca.toString(), client_public.toString());
+                    publishProgress(client_ca, client_public);
 
 
                 } catch (SocketTimeoutException ste)
@@ -664,12 +664,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onProgressUpdate(String... values) {
+        protected void onProgressUpdate(Certificate... values) {
             super.onProgressUpdate(values);
             ConnectDialogFragment clientCertDialog = new ConnectDialogFragment();
             Bundle args = new Bundle();
-            args.putString("ca",values[0]);
-            args.putString("public",values[1]);
+            args.putSerializable("ca",values[0]);
+            args.putSerializable("public",values[1]);
             clientCertDialog.setArguments(args);
             clientCertDialog.show(getSupportFragmentManager(), "client");
         }

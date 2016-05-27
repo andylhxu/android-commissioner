@@ -23,6 +23,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 
 import javax.net.ssl.SSLSocket;
 
@@ -124,13 +126,18 @@ public class ConnectDialogFragment extends DialogFragment {
             return dialog;
         }
         else if (getTag().equals("client")){
-            String cacert = getArguments().getString("ca");
-            String clientcert = getArguments().getString("public");
+            final X509Certificate cacert = (X509Certificate) getArguments().getSerializable("ca");
+            final X509Certificate clientcert = (X509Certificate) getArguments().getSerializable("public");
             final SSLSocket c = ((MainActivity) getActivity()).mCurrentClient;
+
+            String msg = "Certificate Information\n" +
+                    "Common Name: "+clientcert.getSubjectX500Principal().getName()+"\n\n"+
+                    "Issuer Name: "+clientcert.getIssuerX500Principal().getName()+"\n\n"+
+                    "Certificate Serial: "+clientcert.getSerialNumber().toString();
 
             AlertDialog dialog = new AlertDialog.Builder(getActivity())
                     .setTitle("Authorize?")
-                    .setMessage(cacert+clientcert)
+                    .setMessage(msg)
                     .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
@@ -195,6 +202,22 @@ public class ConnectDialogFragment extends DialogFragment {
                     .create();
             return dialog;
 
+        }
+        else if(getTag().equals("certdetail")){
+            X509Certificate ca = (X509Certificate) getArguments().getSerializable("ca");
+            X509Certificate client = (X509Certificate) getArguments().getSerializable("ca");
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            AlertDialog dialog = builder
+                    .setTitle("Certificate Details")
+                    .setMessage(ca.toString()+"\n"+client.toString())
+                    .setPositiveButton("Close", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // do nothin
+                        }
+                    })
+                    .create();
+            return dialog;
         }
         else {
             Bundle args = getArguments();
