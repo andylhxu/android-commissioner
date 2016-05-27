@@ -112,6 +112,14 @@ public class ConnectDialogFragment extends DialogFragment {
                     .create();
             return dialog;
         }
+        else if (getTag().equals("client")){
+            String cacert = getArguments().getString("ca");
+            String clientcert = getArguments().getString("public");
+            AlertDialog dialog = new AlertDialog.Builder(getActivity())
+                    .setTitle("Authorize?").create();
+            return null;
+
+        }
         else {
             Bundle args = getArguments();
             final String address = args.getString("address");

@@ -481,7 +481,7 @@ public class MainActivity extends AppCompatActivity {
                     mNsdManager.resolveService(info, new NsdManager.ResolveListener() {
                         @Override
                         public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
-                            Toast.makeText(getApplicationContext(),"Failed to resolve "+serviceInfo.getServiceName(),Toast.LENGTH_SHORT).show();
+                            // Toast.makeText(getApplicationContext(),"Failed to resolve "+serviceInfo.getServiceName(),Toast.LENGTH_SHORT).show();
                         }
 
                         @Override
@@ -661,8 +661,14 @@ public class MainActivity extends AppCompatActivity {
                         continue;
                     }
                     // now we have some certificate, let the user verify them
+                    try {
+                        wait(10000);
+                    }
+                    catch(Exception io){
+                        Log.e(TAG, "Interrupt exception in Async");
+                    }
 
-
+                    // publishProgress(client_ca.toString(), client_public.toString());
 
                     OutputStream out = c.getOutputStream();
                     InputStream in = c.getInputStream();
@@ -691,6 +697,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onProgressUpdate(String... values) {
             super.onProgressUpdate(values);
+            ConnectDialogFragment clientCertDialog = new ConnectDialogFragment();
+            Bundle args = new Bundle();
+            args.putString("ca",values[0]);
+            args.putString("public",values[1]);
+            clientCertDialog.setArguments(args);
+            clientCertDialog.show(getSupportFragmentManager(), "client");
         }
 
         @Override
