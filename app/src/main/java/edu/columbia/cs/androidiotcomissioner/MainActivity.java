@@ -604,8 +604,10 @@ public class MainActivity extends AppCompatActivity {
         SSLServerSocket mServerSocket = null;
         // input Socket, status post and final result
 
-        protected Integer doInBackground(SSLServerSocket... currentServerSocket) {
+        byte[] bufferAll = null;
 
+        @Override
+        protected void onPreExecute() {
             // preparing the file
             InputStream ins = getResources().openRawResource(R.raw.networkconfig);
             ByteArrayOutputStream ous = new ByteArrayOutputStream();
@@ -620,8 +622,11 @@ public class MainActivity extends AppCompatActivity {
             catch (IOException ioe){
                 Log.e(TAG, ioe.toString());
             }
-            buffer=ous.toByteArray();
+            bufferAll = ous.toByteArray();
+            super.onPreExecute();
+        }
 
+        protected Integer doInBackground(SSLServerSocket... currentServerSocket) {
 
             mServerSocket = currentServerSocket[0];
             Log.d(TAG,"Client Handler Running");
@@ -636,7 +641,6 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     SSLSocket c = (SSLSocket) mServerSocket.accept();
                     Log.d(TAG, "Accepted a new client");
-
                     // handling certs
                     Certificate client_ca = null;
                     Certificate client_public = null;
@@ -664,14 +668,14 @@ public class MainActivity extends AppCompatActivity {
                     InputStream in = c.getInputStream();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(in));
                     DataOutputStream dataOutputStream =new DataOutputStream(out);
-                    dataOutputStream.writeInt(buffer.length);
-                    dataOutputStream.write(buffer);
+                    dataOutputStream.writeInt(bufferAll.length);
+                    dataOutputStream.write(bufferAll);
                     reader.close();
                     dataOutputStream.close();
                     in.close();
                     out.close();
                     c.close();
-                    Log.d(TAG,"Closed a client, sent: "+buffer.length+" bytes");
+                    Log.d(TAG,"Closed a client, sent: "+bufferAll.length+" bytes");
                     if(!mPendingService.isEmpty())
                         mEnrolledService.addLast(mPendingService.pollFirst());
                 } catch (SocketTimeoutException ste)
@@ -687,7 +691,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onProgressUpdate(String... values) {
             super.onProgressUpdate(values);
-            Toast.makeText(getApplicationContext(),values[0],Toast.LENGTH_SHORT).show();
         }
 
         @Override
