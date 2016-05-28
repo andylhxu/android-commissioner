@@ -144,8 +144,11 @@ public class WiFiP2PFragment extends Fragment {
         ImageView mImageView;
         WifiP2pDevice mDevice;
 
+        View holderView;
+
         public WiFiDeviceHolder(View itemView) {
             super(itemView);
+            holderView = itemView;
             mDeviceNameTextView = (TextView) itemView.findViewById(R.id.list_item_device_name);
             mDeviceMacTextView = (TextView) itemView.findViewById(R.id.list_item_device_address);
             mImageView = (ImageView) itemView.findViewById(R.id.list_item_device_image);
@@ -169,9 +172,15 @@ public class WiFiP2PFragment extends Fragment {
             if(hostingActivity.getConnectedP2pDevices().contains(device.deviceAddress)){
                 mImageView.setImageResource(R.drawable.ic_iot_connected);
                 setMessage("Connected");
+                if(itemView != null){
+                    itemView.setClickable(false);
+                }
             }
             else{
                 mImageView.setImageResource(R.drawable.ic_iot_disconnected);
+                if(itemView != null){
+                    itemView.setClickable(true);
+                }
             }
         }
 
