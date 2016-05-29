@@ -381,7 +381,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess() {
                 Log.d(TAG,"WiFiBroadcastReceiver handled peer discovery request");
-                mSectionsPagerAdapter.hostingWiFiP2PFragment.setMessage("Discovering Peers");
+                mSectionsPagerAdapter.hostingWiFiP2PFragment.setMessage("Discovery Mode");
             }
             @Override
             public void onFailure(int reason) {
@@ -658,7 +658,7 @@ public class MainActivity extends AppCompatActivity {
                         client_public = certs[1];
                     }
                     catch (Exception ex){
-                        Log.e(TAG, "Cannot read client certificate");
+                        Log.e(TAG, ex.getMessage());
                         continue;
                     }
                     if(client_ca == null || client_public == null){
@@ -766,7 +766,6 @@ public class MainActivity extends AppCompatActivity {
                         if(mConnectedDevices.contains(device.deviceAddress) == false)
                         {
                             mConnectedDevices.add(device.deviceAddress);
-                            Toast.makeText(getApplicationContext(), "<"+device.deviceName+"> is connected", Toast.LENGTH_SHORT).show();
                         }
                     }
                 }
@@ -839,7 +838,7 @@ public class MainActivity extends AppCompatActivity {
             public void onSuccess() {
                 Toast.makeText(getApplicationContext(),"Invitation sent",Toast.LENGTH_SHORT).show();
                 // register this connection!!!
-                mSectionsPagerAdapter.hostingWiFiP2PFragment.setMessage("Group created");
+                mSectionsPagerAdapter.hostingWiFiP2PFragment.setMessage("AP Mode");
             }
 
             @Override
@@ -882,10 +881,11 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onCompleted(Exception e, byte[] result) {
 
-                            ByteArrayInputStream stream = new ByteArrayInputStream(result);
+
                             X509Certificate certificate;
                             // now we want to verify that this is a certificate
                             try {
+                                ByteArrayInputStream stream = new ByteArrayInputStream(result);
                                 CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509"); // standard X.509 type cert
                                 certificate = (X509Certificate) certificateFactory.generateCertificate(stream); // must be DER or PKCS #7
                             }
@@ -894,9 +894,29 @@ public class MainActivity extends AppCompatActivity {
                                 Toast.makeText(getApplicationContext(), "Not a valid certificate file", Toast.LENGTH_SHORT).show();
                                 return;
                             }
+                            catch (Exception ex){
+                                Toast.makeText(getApplicationContext(), "Download error", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
                             if(certificate == null) {
                                 Toast.makeText(getApplicationContext(), "Empty CA", Toast.LENGTH_SHORT).show();
                                 return; //
+                            }
+
+                            try{
+                                certificate.checkValidity();
+                            } catch (CertificateExpiredException expired){
+                                Toast.makeText(getApplicationContext(), "Expired CA", Toast.LENGTH_SHORT).show();
+                                return; //
+                            } catch (CertificateNotYetValidException notValid){
+                                Toast.makeText(getApplicationContext(), "Not yet valid CA", Toast.LENGTH_SHORT).show();
+                            }
+
+                            try{
+                                certificate.verify(certificate.getPublicKey());
+                            } catch (Exception ex){
+                                Toast.makeText(getApplicationContext(), ex.toString(), Toast.LENGTH_SHORT).show();
+                                return;
                             }
 
                             // Pop window asking whether we should accept certificate or not

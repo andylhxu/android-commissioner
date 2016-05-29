@@ -10,7 +10,7 @@
     <item
         android:id="@+id/action_certificate"
         android:orderInCategory="150"
-        android:title="Set Certificate"
+        android:title="Set CA Certificate"
         app:showAsAction="never"
         />
     <item

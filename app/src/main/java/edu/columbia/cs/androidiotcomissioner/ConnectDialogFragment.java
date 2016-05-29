@@ -44,7 +44,7 @@ public class ConnectDialogFragment extends DialogFragment {
             LayoutInflater inflater = getActivity().getLayoutInflater();
             final View v = (View) inflater.inflate(R.layout.fragment_dialog_certificate,null);
             builder
-                    .setTitle("Set Customized CA Certificate")
+                    .setTitle("Download CA Certificate")
                     .setView(v)
                     .setNeutralButton("Default", new DialogInterface.OnClickListener() {
                         @Override
@@ -91,8 +91,8 @@ public class ConnectDialogFragment extends DialogFragment {
             final int port = args.getInt("port");
             // authorize device
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-            builder.setTitle("Authorize <"+name+">")
-                    .setMessage(address.toString().substring(1)+":"+port)
+            builder
+                    .setMessage("Authenticate <"+name+"> ("+address.toString().substring(1)+":"+port+")")
                     .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
@@ -232,7 +232,7 @@ public class ConnectDialogFragment extends DialogFragment {
                     "Certificate Serial: "+ca.getSerialNumber().toString();
 
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-            builder.setTitle("Verify CA and import?")
+            builder.setTitle("Import this CA")
                     .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
@@ -258,8 +258,7 @@ public class ConnectDialogFragment extends DialogFragment {
             final String name = args.getString("name");
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
             builder
-                    .setTitle("Connect to?")
-                    .setMessage(name+" ("+address+")")
+                    .setMessage("Connect to "+"<"+name+"> ("+address+")")
                     .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {

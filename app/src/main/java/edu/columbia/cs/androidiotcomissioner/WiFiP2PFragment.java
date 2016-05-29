@@ -171,7 +171,6 @@ public class WiFiP2PFragment extends Fragment {
             mDeviceMacTextView.setText(device.deviceAddress);
             if(hostingActivity.getConnectedP2pDevices().contains(device.deviceAddress)){
                 mImageView.setImageResource(R.drawable.ic_iot_connected);
-                setMessage("Connected");
                 if(itemView != null){
                     itemView.setClickable(false);
                 }
