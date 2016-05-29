@@ -813,8 +813,9 @@ public class MainActivity extends AppCompatActivity {
     public void setIsWifiP2pEnabled(boolean flag)
     {
         WiFiP2PFragment f = mSectionsPagerAdapter.hostingWiFiP2PFragment;
-        if(f != null)
+        if(f != null) {
             f.toggleSwitch(flag);
+        }
     }
 
     public void connectToP2PDevice(final String address){

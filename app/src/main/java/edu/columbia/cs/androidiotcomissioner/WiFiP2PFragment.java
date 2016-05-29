@@ -191,6 +191,8 @@ public class WiFiP2PFragment extends Fragment {
 
     public void toggleSwitch(boolean flag){
         mSwitchCompat.setChecked(flag);
+        if(flag == false)
+            mTextView.setText("Off");
     }
 
     public WiFiDeviceAdaptor getDeviceAdaptor(){
