@@ -18,4 +18,9 @@
         android:orderInCategory="200"
         android:title="Group Info"
         app:showAsAction="never"/>
+    <item
+        android:id="@+id/action_reset_wifi"
+        android:orderInCategory="300"
+        android:title="Reset WiFi"
+        app:showAsAction="never"/>
 </menu>

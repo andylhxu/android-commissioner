@@ -228,8 +228,8 @@ public class ConnectDialogFragment extends DialogFragment {
             final X509Certificate ca = (X509Certificate) getArguments().getSerializable("ca");
 
             String msg =
-                    "Issuer Name: "+ca.getIssuerX500Principal().getName()+"\n\n"+
-                    "Certificate Serial: "+ca.getSerialNumber().toString();
+                    "Subject Name: "+ca.getSubjectX500Principal().getName()+"\n\n"+
+                    "Issuer Name: "+ca.getIssuerX500Principal().getName();
 
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
             builder.setTitle("Import this CA")

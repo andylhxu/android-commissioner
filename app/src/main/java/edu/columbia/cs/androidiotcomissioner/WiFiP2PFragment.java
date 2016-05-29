@@ -170,6 +170,7 @@ public class WiFiP2PFragment extends Fragment {
             mDeviceNameTextView.setText(device.deviceName);
             mDeviceMacTextView.setText(device.deviceAddress);
             if(hostingActivity.getConnectedP2pDevices().contains(device.deviceAddress)){
+                mImageView.setVisibility(View.VISIBLE);
                 mImageView.setImageResource(R.drawable.ic_iot_connected);
                 if(itemView != null){
                     itemView.setClickable(false);
@@ -177,6 +178,7 @@ public class WiFiP2PFragment extends Fragment {
             }
             else{
                 mImageView.setImageResource(R.drawable.ic_iot_disconnected);
+                mImageView.setVisibility(View.INVISIBLE);
                 if(itemView != null){
                     itemView.setClickable(true);
                 }

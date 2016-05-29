@@ -2,5 +2,5 @@
     <string name="app_name">Android Commissioner</string>
     <string name="action_refresh">Refresh</string>
     <string name="section_format">Hello World from section: %1$d</string>
-    <string name="create_group_fail">Failed to create a group</string>
+    <string name="create_group_fail">Failed to create a group, please reset WiFi and disconnect from all APs</string>
 </resources>

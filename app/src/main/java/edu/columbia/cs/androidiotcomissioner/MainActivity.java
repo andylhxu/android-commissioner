@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
+import android.net.wifi.WifiManager;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -120,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
     private List<WifiP2pDevice> mWifiP2pDevices;
     private List<String> mConnectedDevices;
     private WiFiBroadcastReceiver mBroadcastReceiver;
-    protected static final int OWNER_INTENT_HIGH = 15;
+    protected static final int OWNER_INTENT_HIGH = -1; // doesn't matter
     private boolean ifGroupCreated = false;
 
 
@@ -184,25 +185,7 @@ public class MainActivity extends AppCompatActivity {
         mPendingService = new ArrayDeque<>();
         mEnrolledService = new ArrayDeque<>();
 
-        final int channelNum = CHANNEL_LIST[new Random().nextInt(CHANNEL_LIST.length)];
-        try {
-            Method setWifiP2pChannels = mManager.getClass().getMethod("setWifiP2pChannels", WifiP2pManager.Channel.class, int.class, int.class, WifiP2pManager.ActionListener.class);
-            setWifiP2pChannels.invoke(mManager, mChannel, 0, channelNum, new WifiP2pManager.ActionListener() {
-                @Override
-                public void onSuccess() {
 
-                    Log.d(TAG, "Changed channel (" + channelNum + ") succeeded");
-                }
-
-                @Override
-                public void onFailure(int reason) {
-                    Log.d(TAG, "Changed channel (" + channelNum + ")  failed");
-                }
-            });
-        } catch (Exception ex)
-        {
-            Log.e(TAG,ex.toString());
-        }
         mWifiP2pDevices = new ArrayList<>();
         mConnectedDevices = new ArrayList<>();
         cacert_customize_url = "";
@@ -268,6 +251,23 @@ public class MainActivity extends AppCompatActivity {
             // pop window
             ConnectDialogFragment f = new ConnectDialogFragment();
             f.show(getSupportFragmentManager(), "certificate");
+        }
+        if (id == R.id.action_reset_wifi){
+            WifiManager manager = (WifiManager) getSystemService(WIFI_SERVICE);
+            if(manager == null){
+                Toast.makeText(getApplicationContext(), "WiFi control permission denied by the system", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+
+
+            if(manager.disconnect())
+                Log.d(TAG, "Successfully disconnect from current network");
+
+            if(manager.setWifiEnabled(false))
+                Log.d(TAG, "Successfully disable wifi");
+
+            if(manager.setWifiEnabled(true))
+                Log.d(TAG, "Successfully enabled wifi");
         }
 
         return super.onOptionsItemSelected(item);
@@ -376,6 +376,27 @@ public class MainActivity extends AppCompatActivity {
 
     public void setDiscoveryOn()
     {
+        // pick a random channel
+        final int channelNum = CHANNEL_LIST[new Random().nextInt(CHANNEL_LIST.length)];
+        try {
+            Method setWifiP2pChannels = mManager.getClass().getMethod("setWifiP2pChannels", WifiP2pManager.Channel.class, int.class, int.class, WifiP2pManager.ActionListener.class);
+            setWifiP2pChannels.invoke(mManager, mChannel, 0, channelNum, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+
+                    Log.d(TAG, "Changed channel (" + channelNum + ") succeeded");
+                }
+
+                @Override
+                public void onFailure(int reason) {
+                    Log.d(TAG, "Changed channel (" + channelNum + ")  failed");
+                }
+            });
+        } catch (Exception ex)
+        {
+            Log.e(TAG,ex.toString());
+        }
+
         // discover peers
         mManager.discoverPeers(mChannel,new WifiP2pManager.ActionListener(){
             @Override
@@ -386,7 +407,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure(int reason) {
                 Log.e(TAG,"Failed to initiate the peer discovery process.");
-                Toast.makeText(MainActivity.this, "Failed to initiate peer discovery, please reset WiFi configuration", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Failed to initiate peer discovery, please reset WiFi configuration and disconnect from all APs", Toast.LENGTH_SHORT).show();
                 if(reason == WifiP2pManager.P2P_UNSUPPORTED)
                     Log.e(TAG,"Unsupported P2P");
                 else if(reason == WifiP2pManager.BUSY)
@@ -415,6 +436,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onSuccess() {
                     Log.d(TAG, "Successfully destroyed the group");
+                    ifGroupCreated = false;
                 }
 
                 @Override
@@ -796,6 +818,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void connectToP2PDevice(final String address){
+
+
         // create a wifi p2p group if a group is not formed
         if(!ifGroupCreated) {
             mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
@@ -803,6 +827,45 @@ public class MainActivity extends AppCompatActivity {
                 public void onSuccess() {
                     ifGroupCreated = true;
                     Log.d(TAG, "Wifip2pgroup successfully created");
+
+
+                    // connect to the device
+                    try {
+                        Thread.sleep(300);
+                    } catch (InterruptedException ie){
+                        Log.e(TAG,ie.getMessage());
+                    }
+
+                    WifiP2pConfig config = new WifiP2pConfig();
+                    config.deviceAddress = address;
+                    config.groupOwnerIntent = OWNER_INTENT_HIGH;
+                    WpsInfo wpsInfo = new WpsInfo();
+                    wpsInfo.setup = WpsInfo.PBC;
+                    config.wps = wpsInfo;
+                    Log.d(TAG,"Attempted to connect to"+config.deviceAddress);
+                    mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
+                        @Override
+                        public void onSuccess() {
+                            Toast.makeText(getApplicationContext(),"Invitation sent",Toast.LENGTH_SHORT).show();
+                            // register this connection!!!
+                            mSectionsPagerAdapter.hostingWiFiP2PFragment.setMessage("AP Mode");
+                        }
+
+                        @Override
+                        public void onFailure(int reason) {
+
+                            if (reason == WifiP2pManager.P2P_UNSUPPORTED) {
+                                Log.e(TAG, "Unsupported P2P");
+
+                            } else if (reason == WifiP2pManager.BUSY) {
+                                Log.e(TAG, "Busy");
+                                Toast.makeText(getApplicationContext(), "Busy, please reset WiFi and disconnect from all APs", Toast.LENGTH_SHORT).show();
+
+                            } else {
+                                Log.e(TAG, "Internal Error");
+                            }
+                        }
+                    });
 
                 }
 
@@ -816,45 +879,49 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "Wifip2pgroup failed to create: ERROR");
                     else
                         Log.e(TAG, "Wifip2pgroup failed to create: P2P Unsupported");
-                    finish();
+
+                    mSectionsPagerAdapter.hostingWiFiP2PFragment.toggleSwitch(false);
+                    setDiscoveryOff();
+
                 }
             });
-            try {
-                Thread.sleep(200, 0);
-            } catch (Exception ex) {
-                Log.e(TAG, ex.toString());
-            }
         }
 
-        WifiP2pConfig config = new WifiP2pConfig();
-        config.deviceAddress = address;
-        config.groupOwnerIntent = OWNER_INTENT_HIGH;
-        WpsInfo wpsInfo = new WpsInfo();
-        wpsInfo.setup = WpsInfo.PBC;
-        config.wps = wpsInfo;
-        Log.d(TAG,"Attempted to connect to"+config.deviceAddress);
-        mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Toast.makeText(getApplicationContext(),"Invitation sent",Toast.LENGTH_SHORT).show();
-                // register this connection!!!
-                mSectionsPagerAdapter.hostingWiFiP2PFragment.setMessage("AP Mode");
-            }
 
-            @Override
-            public void onFailure(int reason) {
-
-                if (reason == WifiP2pManager.P2P_UNSUPPORTED) {
-                    Log.e(TAG, "Unsupported P2P");
-
-                } else if (reason == WifiP2pManager.BUSY) {
-                    Log.e(TAG, "Busy");
-
-                } else {
-                    Log.e(TAG, "Internal Error");
+        else{
+            WifiP2pConfig config = new WifiP2pConfig();
+            config.deviceAddress = address;
+            config.groupOwnerIntent = OWNER_INTENT_HIGH;
+            WpsInfo wpsInfo = new WpsInfo();
+            wpsInfo.setup = WpsInfo.PBC;
+            config.wps = wpsInfo;
+            Log.d(TAG,"Attempted to connect to"+config.deviceAddress);
+            mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    Toast.makeText(getApplicationContext(),"Invitation sent",Toast.LENGTH_SHORT).show();
+                    // register this connection!!!
+                    mSectionsPagerAdapter.hostingWiFiP2PFragment.setMessage("AP Mode");
                 }
-            }
-        });
+
+                @Override
+                public void onFailure(int reason) {
+
+                    if (reason == WifiP2pManager.P2P_UNSUPPORTED) {
+                        Log.e(TAG, "Unsupported P2P");
+
+                    } else if (reason == WifiP2pManager.BUSY) {
+                        Log.e(TAG, "Busy");
+                        Toast.makeText(getApplicationContext(), "Busy, please reset WiFi and disconnect from all APs", Toast.LENGTH_SHORT).show();
+
+                    } else {
+                        Log.e(TAG, "Internal Error");
+                    }
+                }
+            });
+        }
+
+
     }
 
     public void setCertificate(String url){
