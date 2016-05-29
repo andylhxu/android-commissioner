@@ -44,6 +44,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.Inet4Address;
@@ -53,17 +54,30 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Principal;
+import java.security.PublicKey;
+import java.security.SignatureException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.CertificateNotYetValidException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -122,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int RESOLVING_INTERVAL = 5000;
 
     public String cacert_customize_url;
-    public byte[] cacert_customize_stream;
+    public Certificate caInputCert;
     private static final String keyStore_pass = "123456";
 
 
@@ -192,7 +206,7 @@ public class MainActivity extends AppCompatActivity {
         mWifiP2pDevices = new ArrayList<>();
         mConnectedDevices = new ArrayList<>();
         cacert_customize_url = "";
-        cacert_customize_stream = null;
+        caInputCert = null;
 
     }
 
@@ -527,13 +541,9 @@ public class MainActivity extends AppCompatActivity {
             Resources resources = getResources();
             InputStream caInput;
             InputStream keyStoreInput = resources.openRawResource(R.raw.keystore); // default keystore
-            if(cacert_customize_stream == null) {
-                caInput = resources.openRawResource(R.raw.cacert); // default ca
-            }
-            else{
-                caInput = new ByteArrayInputStream(cacert_customize_stream);
-                Log.d(TAG, "Set customized certificate");
-            }
+            caInput = resources.openRawResource(R.raw.cacert); // default ca
+
+
 
             SSLContext sslContext; // the sslContext of our keystore
             KeyManagerFactory keyManagerFactory; // the Factory that creates a KeyManager
@@ -555,6 +565,12 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG,"creating the factory");
             CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509"); // standard X.509 type cert
             Certificate certificate = certificateFactory.generateCertificate(caInput); // must be DER or PKCS #7
+
+            if(caInputCert != null){
+                certificate = caInputCert;
+                Log.d(TAG, "Using customized CA");
+            }
+
             Log.d(TAG,"adding cert to keystore");
             KeyStore keyStoreCA = KeyStore.getInstance(KeyStore.getDefaultType());
             keyStoreCA.load(null, null); // empty keystore
@@ -750,7 +766,7 @@ public class MainActivity extends AppCompatActivity {
                         if(mConnectedDevices.contains(device.deviceAddress) == false)
                         {
                             mConnectedDevices.add(device.deviceAddress);
-                            Toast.makeText(getApplicationContext(), device.deviceName +" is connected", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "<"+device.deviceName+"> is connected", Toast.LENGTH_SHORT).show();
                         }
                     }
                 }
@@ -866,9 +882,29 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onCompleted(Exception e, byte[] result) {
 
-                                cacert_customize_stream = result;
-                                Toast.makeText(getApplicationContext(), "CA loaded", Toast.LENGTH_SHORT).show();
-                                Log.d(TAG, "CA loaded");
+                            ByteArrayInputStream stream = new ByteArrayInputStream(result);
+                            X509Certificate certificate;
+                            // now we want to verify that this is a certificate
+                            try {
+                                CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509"); // standard X.509 type cert
+                                certificate = (X509Certificate) certificateFactory.generateCertificate(stream); // must be DER or PKCS #7
+                            }
+                            catch (CertificateException ce)
+                            {
+                                Toast.makeText(getApplicationContext(), "Not a valid certificate file", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            if(certificate == null) {
+                                Toast.makeText(getApplicationContext(), "Empty CA", Toast.LENGTH_SHORT).show();
+                                return; //
+                            }
+
+                            // Pop window asking whether we should accept certificate or not
+                            ConnectDialogFragment f = new ConnectDialogFragment();
+                            Bundle args = new Bundle();
+                            args.putSerializable("ca",certificate);
+                            f.setArguments(args);
+                            f.show(getSupportFragmentManager(),"importca");
                         }
                     });
 

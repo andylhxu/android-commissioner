@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -130,7 +131,7 @@ public class ConnectDialogFragment extends DialogFragment {
             final X509Certificate clientcert = (X509Certificate) getArguments().getSerializable("public");
             final SSLSocket c = ((MainActivity) getActivity()).mCurrentClient;
 
-            String msg = "Certificate Information\n" +
+            String msg =
                     "Common Name: "+clientcert.getSubjectX500Principal().getName()+"\n\n"+
                     "Issuer Name: "+clientcert.getIssuerX500Principal().getName()+"\n\n"+
                     "Certificate Serial: "+clientcert.getSerialNumber().toString();
@@ -221,6 +222,35 @@ public class ConnectDialogFragment extends DialogFragment {
                     })
                     .create();
             return dialog;
+        }
+        else if(getTag().equals("importca")){
+
+            final X509Certificate ca = (X509Certificate) getArguments().getSerializable("ca");
+
+            String msg =
+                    "Issuer Name: "+ca.getIssuerX500Principal().getName()+"\n\n"+
+                    "Certificate Serial: "+ca.getSerialNumber().toString();
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setTitle("Verify CA and import?")
+                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            hostingActivity.caInputCert = ca;
+                            Log.d(TAG, "Loaded CA");
+                            Toast.makeText(getActivity().getApplicationContext(), "Loaded CA", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // do nothin
+                            hostingActivity.caInputCert = null;
+                        }
+                    })
+                    .setMessage(msg);
+            return builder.create();
+
         }
         else {
             Bundle args = getArguments();
