@@ -166,25 +166,41 @@ public class ZeroConfFragment extends Fragment {
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    callingActivity.mNsdManager.resolveService(mNsdServiceInfo, new NsdManager.ResolveListener() {
-                        @Override
-                        public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
-                            Toast.makeText(getActivity(),"Failed to resolve",Toast.LENGTH_SHORT).show();
-                        }
+                    if(mNsdServiceInfo.getHost() == null){
+                        Toast.makeText(getActivity(),"Resolving...",Toast.LENGTH_SHORT).show();
+                        callingActivity.mNsdManager.resolveService(mNsdServiceInfo, new NsdManager.ResolveListener() {
+                            @Override
+                            public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                                Toast.makeText(getActivity(),"Failed to resolve",Toast.LENGTH_SHORT).show();
+                            }
 
-                        @Override
-                        public void onServiceResolved(NsdServiceInfo serviceInfo) {
-                            String result = serviceInfo.getHost().toString().substring(1)+":"+serviceInfo.getPort();
-                            Log.d(TAG,"Resolved:"+result);
-                            DialogFragment connectDialog = new ConnectDialogFragment();
-                            Bundle args = new Bundle();
-                            args.putString("name", serviceInfo.getServiceName());
-                            args.putSerializable("address", serviceInfo.getHost());
-                            args.putInt("port", serviceInfo.getPort());
-                            connectDialog.setArguments(args);
-                            connectDialog.show(getFragmentManager(),"service");
-                        }
-                    });
+                            @Override
+                            public void onServiceResolved(NsdServiceInfo serviceInfo) {
+                                String result = serviceInfo.getHost().toString().substring(1)+":"+serviceInfo.getPort();
+                                Log.d(TAG,"Resolved:"+result);
+                                DialogFragment connectDialog = new ConnectDialogFragment();
+                                Bundle args = new Bundle();
+                                args.putString("name", serviceInfo.getServiceName());
+                                args.putSerializable("address", serviceInfo.getHost());
+                                args.putInt("port", serviceInfo.getPort());
+                                connectDialog.setArguments(args);
+                                connectDialog.show(getFragmentManager(),"service");
+                            }
+                        });
+                    }
+                    else {
+                        DialogFragment connectDialog = new ConnectDialogFragment();
+                        Bundle args = new Bundle();
+                        args.putString("name", mNsdServiceInfo.getServiceName());
+                        args.putSerializable("address", mNsdServiceInfo.getHost());
+                        args.putInt("port", mNsdServiceInfo.getPort());
+                        connectDialog.setArguments(args);
+                        connectDialog.show(getFragmentManager(), "service");
+                    }
+                    /*
+
+                    */
+
                 }
             });
         }
