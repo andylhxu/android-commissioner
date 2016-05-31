@@ -23,6 +23,6 @@ cp ./app/build/outputs/apk/app-debug.apk . || { echo "Copy failed, apk not found
 
 echo "Renaming the file";
 
-mv app-debug.apk BootStrapServer_debug.apk || { echo "Rename failed"; exit 1; }
+mv app-debug.apk AndroidCommissioner.apk || { echo "Rename failed"; exit 1; }
 
-echo "Autoscript runned successfully, BootStrapServer_debug.apk exported";
+echo "Autoscript runned successfully, AndroidCommissioner.apk exported";
