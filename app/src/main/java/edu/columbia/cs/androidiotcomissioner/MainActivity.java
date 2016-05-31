@@ -681,10 +681,12 @@ public class MainActivity extends AppCompatActivity {
                     }
                     catch (Exception ex){
                         Log.e(TAG, ex.getMessage());
+                        Toast.makeText(getApplicationContext(), ex.getMessage()+", failed to verify client certificate",Toast.LENGTH_SHORT).show();
                         continue;
                     }
                     if(client_ca == null || client_public == null){
                         Log.e(TAG, "Client certificate empty");
+                        Toast.makeText(getApplicationContext(), "Empty client certificate received",Toast.LENGTH_SHORT).show();
                         continue;
                     }
 

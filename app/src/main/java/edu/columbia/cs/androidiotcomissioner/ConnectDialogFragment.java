@@ -137,7 +137,7 @@ public class ConnectDialogFragment extends DialogFragment {
                     "Certificate Serial: "+clientcert.getSerialNumber().toString();
 
             AlertDialog dialog = new AlertDialog.Builder(getActivity())
-                    .setTitle("Authorize?")
+                    .setTitle("Trust this client certificate?")
                     .setMessage(msg)
                     .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                         @Override
